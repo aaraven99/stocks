@@ -33,7 +33,7 @@ A conservative, real-time breakout assistant focused on **capital protection**, 
   - Auto-invalidation + dynamic stop tightening
 - Regime filter to avoid unfavorable/choppy conditions, with optional index confirmation.
 - Backtester with slippage/fees and key metrics: win rate, avg R, max drawdown, Sharpe.
-- Modern Streamlit dashboard for active setups + watchlist + metrics tables.
+- Modern Vercel-friendly static dashboard for active setups + watchlist + metrics tables.
 - 20-year chunked iterative research utility (2-week to 1-month chunks) for tune/retest loops.
 
 ## Quick start
@@ -45,16 +45,29 @@ source .venv/bin/activate
 python -m breakout_system.demo --tickers AAPL,MSFT,NVDA --bars 350
 ```
 
-## Dashboard (modern table UI)
+## Dashboard on Vercel (modern table UI)
+
+Build a snapshot JSON from the Python engine, then serve the static dashboard:
 
 ```bash
-streamlit run breakout_system/dashboard.py
+python scripts/build_dashboard_snapshot.py --tickers AAPL,MSFT,NVDA,AMZN --bars 400
+python -m http.server 8080 --directory public
 ```
+
+For Vercel deploy, just push this repo (with `public/` + `vercel.json`).
 
 Shows:
 - High-confidence active setups with columns: ticker, timeframe, pattern, entry, stop, target, risk/reward, quantity, ML probability, timestamp.
 - Watchlist of forming setups.
 - Model/backtest metrics cards.
+
+### Does this run the same as Streamlit?
+
+Not exactly. Streamlit is a Python app server with session state; Vercel here is a static modern frontend that reads a generated JSON snapshot.
+
+- **Same:** table outputs, metrics, modern UI, and all breakout columns.
+- **Different:** Vercel static hosting does not keep a long-running Python process alive by itself.
+  - To refresh data continuously, regenerate `public/data/latest_snapshot.json` on a schedule (CI/cron) or add serverless API routes backed by a data store.
 
 ## 20-year chunked iterative refinement
 

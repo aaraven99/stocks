@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Breakout ML Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>📊 Breakout ML Dashboard (Vercel)</h1>
+        <p>Static modern dashboard powered by the breakout engine snapshot.</p>
+      </header>
+
+      <section class="cards" id="metric-cards"></section>
+
+      <section class="grid">
+        <article class="panel wide">
+          <div class="panel-title">✅ High-Confidence Active Setups</div>
+          <div class="table-wrap"><table id="active-table"></table></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-title">👀 Watchlist (Forming)</div>
+          <div class="table-wrap"><table id="watch-table"></table></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">📈 Backtest Snapshot</div>
+        <div class="table-wrap"><table id="backtest-table"></table></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
