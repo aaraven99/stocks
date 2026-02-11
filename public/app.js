@@ -59,7 +59,7 @@ function renderCards(data) {
     .map(([k, label]) => {
       const v = metrics[k];
       const display = k === 'model_ready' ? (v ? '<span class="badge-ok">YES</span>' : '<span class="badge-no">NO</span>') : format(v);
-      return `<div class="card"><div class="label">${label}</div><div class="value">${display}</div><div class="label">mode: ${mode}</div></div>`;
+      return `<div class=\"card\"><div class=\"label\">${label}</div><div class=\"value\">${display}</div><div class=\"label\">mode: ${mode}</div><div class=\"label\">generated: ${data.generated_at_utc || 'n/a'}</div></div>`;
     })
     .join('');
 }
@@ -75,7 +75,8 @@ function renderSafeguards(data) {
     <div class="safeguard-row"><strong>Failover Mode:</strong> ${format(s.failover_mode)}</div>
     <div class="safeguard-row warn"><strong>Stale Alerts:</strong> ${stale}</div>
     <div class="safeguard-row"><strong>Fetch Latency:</strong> ${latText}</div>
-    <div class="safeguard-row"><strong>Ready Tickers:</strong> ${(s.data_ready_tickers || []).join(', ') || 'none'}</div>
+    <div class=\"safeguard-row\"><strong>Ready Tickers:</strong> ${(s.data_ready_tickers || []).join(', ') || 'none'}</div>
+    <div class=\"safeguard-row warn\"><strong>Dropped Tickers:</strong> ${Object.keys(s.dropped_tickers || {}).length ? JSON.stringify(s.dropped_tickers) : 'none'}</div>
   `;
 }
 

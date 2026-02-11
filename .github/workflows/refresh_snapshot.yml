@@ -24,7 +24,8 @@ jobs:
             --bars 400 \
             --train-years 20 \
             --refine-years 5 \
-            --refine-iterations 1
+            --refine-iterations 1 \
+            --min-real-tickers 2
       - name: Commit and push snapshot update
         run: |
           git config user.name "github-actions[bot]"

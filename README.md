@@ -50,7 +50,7 @@ python -m breakout_system.demo --tickers AAPL,MSFT,NVDA --bars 350
 Build a **real-feed** snapshot JSON from the Python engine, then serve the static dashboard:
 
 ```bash
-python scripts/build_dashboard_snapshot.py --tickers AAPL,MSFT,NVDA,AMZN --bars 400 --train-years 20 --refine-years 5 --refine-iterations 1
+python scripts/build_dashboard_snapshot.py --tickers AAPL,MSFT,NVDA,AMZN --bars 400 --train-years 20 --refine-years 5 --refine-iterations 1 --min-real-tickers 2
 # optional dev-only fallback:
 # python scripts/build_dashboard_snapshot.py --tickers AAPL,MSFT --allow-simulated-fallback
 python -m http.server 8080 --directory public
@@ -62,6 +62,12 @@ For Vercel deploy, just push this repo (with `public/` + `vercel.json`).
 
 
 Shows:
+
+Snapshot reliability improvements:
+- yfinance downloads use retry + backoff.
+- Requires a minimum number of real-data-ready tickers (`--min-real-tickers`) before succeeding.
+- Adds `generated_at_utc`, dropped ticker reasons, and schema validation before writing JSON.
+
 - Top-ranked opportunities scored by ML probability + risk/reward + liquidity + regime.
 - High-confidence active setups with columns: ticker, timeframe, pattern, entry, stop, target, risk/reward, quantity, ML probability, timestamp.
 - Watchlist of forming setups.
