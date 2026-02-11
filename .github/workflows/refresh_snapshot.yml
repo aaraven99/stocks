@@ -1,0 +1,35 @@
+name: Refresh dashboard snapshot
+
+on:
+  schedule:
+    - cron: '*/30 * * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Build real-feed snapshot
+        run: |
+          python scripts/build_dashboard_snapshot.py \
+            --tickers AAPL,MSFT,NVDA,AMZN,GOOGL,META \
+            --bars 400 \
+            --train-years 20 \
+            --refine-years 5 \
+            --refine-iterations 1 \
+            --min-real-tickers 3
+      - name: Commit and push snapshot update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/latest_snapshot.json
+          git diff --cached --quiet || git commit -m "chore: refresh dashboard snapshot"
+          git push
