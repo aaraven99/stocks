@@ -18,6 +18,18 @@ class AlpacaPaperBroker:
   account=self._request('GET','/v2/account');self.db.upsert('broker_account_snapshots',{'date':datetime.now(timezone.utc).date().isoformat(),'equity':float(account['equity']),'cash':float(account['cash']),'buying_power':float(account['buying_power']),'details_json':account},['date']);return account
  def positions(self):return self._request('GET','/v2/positions') if self.enabled else []
  def open_orders(self):return self._request('GET','/v2/orders',params={'status':'open','nested':'true','limit':500}) if self.enabled else []
+ def get_order(self,broker_order_id):
+  if not self.enabled:return None
+  return self._request('GET',f'/v2/orders/{broker_order_id}')
+ def cancel_order(self,broker_order_id):
+  if not self.enabled:return {'canceled':False,'reason':'alpaca_credentials_not_configured'}
+  self._request('DELETE',f'/v2/orders/{broker_order_id}')
+  order=self.get_order(broker_order_id)
+  if order:
+   self._persist_order(order,datetime.now(timezone.utc).date().isoformat())
+  return {'canceled':True,'order':order}
+ def _persist_order(self,order,date):
+  self.db.upsert('broker_orders',{'client_order_id':order.get('client_order_id') or order['id'],'broker_order_id':order['id'],'ticker':order['symbol'],'date':date,'status':order['status'],'payload_json':{},'response_json':order,'updated_at':datetime.now(timezone.utc).isoformat()},['client_order_id'])
  def client_order_id(self,date,ticker):return 'qrs-'+hashlib.sha256(f'{date}:{ticker}:long-bracket-v1'.encode()).hexdigest()[:24]
  def submit_long_bracket(self,date,plan):
   if not self.enabled:return {'submitted':False,'reason':'alpaca_credentials_not_configured'}
@@ -33,5 +45,5 @@ class AlpacaPaperBroker:
  def reconcile(self,date):
   if not self.enabled:return {'enabled':False,'positions':0,'orders':0}
   account=self.account();positions=self.positions();orders=self.open_orders()
-  for order in orders:self.db.upsert('broker_orders',{'client_order_id':order.get('client_order_id') or order['id'],'broker_order_id':order['id'],'ticker':order['symbol'],'date':date,'status':order['status'],'payload_json':{},'response_json':order,'updated_at':datetime.now(timezone.utc).isoformat()},['client_order_id'])
+  for order in orders:self._persist_order(order,date)
   return {'enabled':True,'equity':float(account['equity']),'positions':len(positions),'orders':len(orders)}

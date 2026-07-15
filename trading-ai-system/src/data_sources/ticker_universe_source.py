@@ -20,12 +20,13 @@ def load_universe(mode='top500', force_file=False):
   if mode in ('top500','top'):return dynamic[:500],'dynamic_nasdaq_nyse_top500'
   if mode in ('backup','backup_2000'):return dynamic[:2000],'dynamic_nasdaq_nyse_backup2000'
   return dynamic[:8000],'dynamic_nasdaq_nyse_full'
- root=Path(__file__).resolve().parents[2]/'data'; candidates=['universe_full.csv','universe_backup_2000.csv','universe_top500.csv']
- for name in candidates:
+ root=Path(__file__).resolve().parents[1]/'data'
+ names={'full':['universe_full.csv','universe_backup_2000.csv','universe_top500.csv'],'backup':['universe_backup_2000.csv','universe_top500.csv'],'backup_2000':['universe_backup_2000.csv','universe_top500.csv'],'top':['universe_top500.csv'],'top500':['universe_top500.csv']}
+ for name in names.get(mode,names['full']):
   p=root/name
   if p.exists():
    try:
-    values=pd.read_csv(p).iloc[:,0].dropna().astype(str).tolist()
+    values=pd.read_csv(p,keep_default_na=False).iloc[:,0].astype(str).tolist()
     if values:return values,name
    except Exception: pass
  return FALLBACK,'embedded_resilient_fallback'

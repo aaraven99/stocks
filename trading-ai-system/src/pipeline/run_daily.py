@@ -23,6 +23,7 @@ from data_sources.news_sentiment_source import sentiment_snapshot
 from data_sources.options_flow_source import options_flow_proxy
 from data_sources.earnings_calendar_source import event_risk
 from data_sources.market_breadth_source import breadth_snapshot
+from data_sources.provider_compliance import PROVIDER_COMPLIANCE
 from features.feature_engineering import make_features,feature_definitions
 from regime.regime_detection import detect
 from regime.regime_forecast import forecast
@@ -55,6 +56,7 @@ from reporting.html_builder import build as html_build
 from reporting.markdown_report import build as md_build
 from reporting.email_sender import send
 from reporting.charts import equity_chart
+from pipeline.stages import select_fast_universe,fast_filter,select_deep_tickers
 
 ROOT=Path(__file__).resolve().parents[1]
 def config(): return yaml.safe_load((ROOT/'config/config.yaml').read_text())
@@ -89,7 +91,7 @@ def main(test_mode=False,send_email=False):
   finally:timings[name]=round(time.perf_counter()-start,3)
  broker_state=stage('broker_reconcile',lambda:broker.reconcile(date),{'enabled':False}) if not cfg['system']['test_mode'] else {'enabled':False,'reason':'test_mode'};capital=float(broker_state.get('equity',os.getenv('STARTING_CAPITAL','100000')))
  universe,source=stage('universe',lambda:load_universe('full'),([], 'unavailable'))
- universe=universe[:12] if cfg['system']['test_mode'] else universe[:cfg['universe']['fast_limit']]
+ universe=select_fast_universe(universe,12 if cfg['system']['test_mode'] else cfg['universe']['fast_limit'])
  frames,failures=stage('batch_ingestion',lambda:fetch_ohlcv_batch(universe,test_mode=cfg['system']['test_mode']),({},{}))
  failure_rate=len(failures)/max(1,len(universe));failover='none'
  if failure_rate>.20:
@@ -97,8 +99,9 @@ def main(test_mode=False,send_email=False):
  db.upsert('universe_health',{'date':date,'requested':len(universe),'loaded':len(frames),'deep_analyzed':0,'failed':len(failures),'source':source,'failover_mode':failover,'details_json':{'failure_rate':failure_rate,'sample_failures':dict(list(failures.items())[:25])}},['date'])
  quality={ticker:score_ohlcv(df) for ticker,df in frames.items()}
  for ticker,df in frames.items():_persist_prices(db,ticker,df,date,quality[ticker])
- fast=sorted(({'ticker':t,'fast_score':_fast_score(df),'quality':quality[t]} for t,df in frames.items()),key=lambda x:x['fast_score'],reverse=True)
- deep_limit=min(cfg['universe']['deep_limit'],len(fast));deep_tickers=[x['ticker'] for x in fast[:deep_limit]]
+ fast=fast_filter(frames,_fast_score)
+ fast=[{**row,'quality':quality[row['ticker']]} for row in fast]
+ deep_limit=min(cfg['universe']['deep_limit'],len(fast));deep_tickers=select_deep_tickers(fast,deep_limit)
  db.execute('UPDATE universe_health SET deep_analyzed=? WHERE date=?',(len(deep_tickers),date))
  cross=stage('cross_asset',lambda:cross_asset_snapshot(cfg['system']['test_mode']),{}) or {};breadth=breadth_snapshot(frames);spy=frames['SPY'] if 'SPY' in frames else stage('spy_proxy',lambda:fetch_ohlcv('SPY',test_mode=cfg['system']['test_mode']));vix=stage('vix_proxy',lambda:fetch_ohlcv('^VIX',test_mode=cfg['system']['test_mode']),spy); 
  if spy is None: raise RuntimeError('No valid market proxy available; entering safe failure state')
@@ -132,7 +135,7 @@ def main(test_mode=False,send_email=False):
  for signal in discover_signal(spy):
   experiment_id=f"signal_{signal['signal_name']}_v1";accepted=int(experiments.evaluate(experiment_id,signal['signal_name'],{'formula':signal['formula']},{'score':signal['score']}));db.upsert('signal_discovery',{'date':date,'signal_name':signal['signal_name'],'formula':signal['formula'],'score':signal['score'],'details_json':signal},['date','signal_name']);db.upsert('research_lab',{'date':date,'experiment_id':experiment_id,'signal_name':signal['signal_name'],'metrics_json':signal,'accepted':accepted},['date','experiment_id'])
  leakage=check_feature_frame(__import__('pandas').DataFrame([x['features'] for x in results]));db.upsert('leakage_detection',{'date':date,'passed':int(leakage['passed']),'findings_json':leakage['findings']},['date'])
- report={'date':date,'regime':regime['regime'],'regime_forecast':regime,'decision':decision,'picks':alloc[:12],'debate':debate,'narrative':llm,'kill_switch':kill,'universe_health':{'requested':len(universe),'loaded':len(frames),'deep_analyzed':len(deep_tickers),'failure_rate':failure_rate,'source':source,'failover':failover},'analytics':analytics,'calibration':{'brier':cal_brier,'curve':cal_curve,'drift':drift},'stress':db.rows('SELECT scenario,AVG(pnl_pct) avg_pnl,AVG(penalty) avg_penalty FROM stress_outputs WHERE date=? GROUP BY scenario',(date,))};ensure_artifacts();html=html_build(report);write_text('daily_report.html',html);write_text('daily_report.md',md_build(report));equity_chart(db.rows('SELECT * FROM equity_curve ORDER BY date')).write_html(ensure_artifacts()/'equity_curve_chart.html',include_plotlyjs='cdn');manifest=build_manifest(cfg,{'run_id':run_id,'universe_source':source,'loaded':len(frames),'deep_tickers':deep_tickers,'timings':timings});write_json('manifest.json',manifest);db.upsert('reproducibility_manifests',{'run_id':manifest['run_id'],'date':date,'manifest_json':manifest,'created_at':manifest['created_at']},['run_id'])
+ report={'date':date,'regime':regime['regime'],'regime_forecast':regime,'decision':decision,'picks':alloc[:12],'debate':debate,'narrative':llm,'kill_switch':kill,'universe_health':{'requested':len(universe),'loaded':len(frames),'deep_analyzed':len(deep_tickers),'failure_rate':failure_rate,'source':source,'failover':failover},'analytics':analytics,'calibration':{'brier':cal_brier,'curve':cal_curve,'drift':drift},'stress':db.rows('SELECT scenario,AVG(pnl_pct) avg_pnl,AVG(penalty) avg_penalty FROM stress_outputs WHERE date=? GROUP BY scenario',(date,)),'equity_chart_artifact':'equity_curve_chart.html','provider_compliance':PROVIDER_COMPLIANCE};ensure_artifacts();equity_chart(db.rows('SELECT * FROM equity_curve ORDER BY date')).write_html(ensure_artifacts()/'equity_curve_chart.html',include_plotlyjs='cdn');html=html_build(report);write_text('daily_report.html',html);write_text('daily_report.md',md_build(report));manifest=build_manifest(cfg,{'run_id':run_id,'universe_source':source,'loaded':len(frames),'deep_tickers':deep_tickers,'timings':timings});write_json('manifest.json',manifest);db.upsert('reproducibility_manifests',{'run_id':manifest['run_id'],'date':date,'manifest_json':manifest,'created_at':manifest['created_at']},['run_id'])
  if send_email:stage('email',lambda:send(html,'Systematic Swing Research '+date))
  status='success_with_degradation' if errors else 'success';db.upsert('pipeline_runs',{'run_id':run_id,'date':date,'status':status,'started_at':now_local().isoformat(),'finished_at':now_local().isoformat(),'stage_timings_json':timings,'errors_json':errors},['run_id']);log_dir=ROOT.parent/'research_logs';log_dir.mkdir(exist_ok=True);(log_dir/f'{run_id}.json').write_text(json.dumps({'run_id':run_id,'status':status,'stage_timings':timings,'errors':errors},indent=2));return report
 if __name__=='__main__':

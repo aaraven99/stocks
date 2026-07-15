@@ -32,6 +32,8 @@ def build(report):
  forecast=report.get('regime_forecast',{});health=report.get('universe_health',{});analytics=report.get('analytics',{});paper=analytics.get('paper',{});debate=report.get('debate',{});cal=report.get('calibration',{})
  narrative=report.get('narrative',{}).get('text','No narrative available.')
  factor=analytics.get('factor_exposure',{})
+ providers=report.get('provider_compliance',{})
+ provider_rows=''.join(f"<tr><td>{name}</td><td>{item['status']}</td><td>{item['provider']}</td><td>{'allowed' if item['decision_use'] else 'excluded from decisions'}</td></tr>" for name,item in providers.items())
  return f'''<html><head><style>{CSS}</style></head><body>
 <h1>Systematic Swing Research Briefing</h1>
 <div class="tile">As-of: {report['date']} | Decision: <b>{report['decision']}</b> | Regime: {report['regime']}</div>
@@ -47,10 +49,13 @@ def build(report):
 <table><tr><th>Scenario</th><th>Average PnL</th><th>Average Penalty</th></tr>{stress_rows}</table>
 <h2>Paper Trading & Equity Curve</h2>
 <p>Closed trades: {paper.get('closed_trades',0)} | Win rate: {_pct(paper.get('win_rate',0))} | Profit factor: {_num(paper.get('profit_factor',0))} | Max drawdown: {_pct(paper.get('max_drawdown',0))} | Risk of ruin proxy: {_pct(analytics.get('risk_of_ruin',0))}</p>
-<p>Embedded chart artifact: <code>equity_curve_chart.html</code></p>
+<p>Embedded chart artifact: <code>{report.get('equity_chart_artifact','equity_curve_chart.html')}</code></p>
+<iframe title="Paper trading equity curve" src="{report.get('equity_chart_artifact','equity_curve_chart.html')}" style="width:100%;height:420px;border:0"></iframe>
 <h2>Agent Debate Summary</h2>
 <p>Bull score: {debate.get('bull_score',0):.2f}; Bear score: {debate.get('bear_score',0):.2f}; Committee verdict: {debate.get('action','CASH')}</p>
 <h2>Attribution Summary</h2>
 <p>Portfolio factor exposure: {factor}</p>
+<h2>Alternative Data Governance</h2>
+<table><tr><th>Source</th><th>Status</th><th>Provider</th><th>Decision use</th></tr>{provider_rows or '<tr><td colspan="4">No provider metadata</td></tr>'}</table>
 <p>{narrative}</p>
 {disclaimer()}</body></html>'''

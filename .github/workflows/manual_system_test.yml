@@ -22,6 +22,9 @@ jobs:
       - name: Unit tests
         working-directory: trading-ai-system
         run: python -m unittest discover -s tests -v
+      - name: Universe throughput contract
+        working-directory: trading-ai-system
+        run: python -m unittest discover -s tests -p test_system.py -v
       - name: End-to-end test pipeline
         working-directory: trading-ai-system
         run: python src/pipeline/run_daily.py --test-mode
