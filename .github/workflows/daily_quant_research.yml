@@ -1,0 +1,49 @@
+name: Daily Quant Research
+on:
+  schedule:
+    - cron: '0 7 * * 1-5'
+  workflow_dispatch:
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GMAIL_USER: ${{ secrets.GMAIL_USER }}
+      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      ALPACA_PAPER_TRADE: 'true'
+      ALPACA_DATA_FEED: iex
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: trading-ai-system/requirements.txt
+      - run: pip install -r trading-ai-system/requirements.txt
+      - uses: actions/cache@v4
+        with:
+          path: trading-ai-system/.cache
+          key: market-cache-${{ github.run_id }}
+          restore-keys: market-cache-
+      - name: Run research and paper execution
+        working-directory: trading-ai-system
+        run: python src/pipeline/run_daily.py
+      - name: Send America/Chicago briefing
+        working-directory: trading-ai-system
+        run: PYTHONPATH=src python -c "from reporting.email_sender import send; from pathlib import Path; from core.time_utils import trading_date; print(send(Path('artifacts/daily_report.html').read_text(),'Systematic Swing Research '+trading_date()))"
+      - name: Healthcheck
+        working-directory: trading-ai-system
+        run: python src/pipeline/run_healthcheck.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quant-research-${{ github.run_id }}
+          path: |
+            trading-ai-system/artifacts/
+            trading-ai-system/research_logs/
+          retention-days: 30
