@@ -46,4 +46,11 @@ class AlpacaPaperBroker:
   if not self.enabled:return {'enabled':False,'positions':0,'orders':0}
   account=self.account();positions=self.positions();orders=self.open_orders()
   for order in orders:self._persist_order(order,date)
+  known={row['broker_order_id'] for row in self.db.rows('SELECT broker_order_id FROM broker_orders WHERE broker_order_id IS NOT NULL')}
+  for broker_order_id in known-set(order['id'] for order in orders):
+   try:
+    order=self.get_order(broker_order_id)
+    if order:self._persist_order(order,date)
+   except Exception:
+    continue
   return {'enabled':True,'equity':float(account['equity']),'positions':len(positions),'orders':len(orders)}

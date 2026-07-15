@@ -17,6 +17,7 @@ jobs:
         working-directory: trading-ai-system
         run: |
           python -m unittest discover -s tests -v
+          python src/pipeline/run_backfill.py --max-tickers 10 --period 2y --max-samples 20 --mc-sims 1000
           python src/pipeline/run_training.py
           python src/pipeline/run_backtest.py
           python src/pipeline/run_validation.py

@@ -12,3 +12,4 @@ matplotlib>=3.8
 statsmodels>=0.14
 xgboost>=2.0
 hmmlearn>=0.3
+shap>=0.45

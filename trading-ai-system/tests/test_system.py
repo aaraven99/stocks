@@ -15,6 +15,7 @@ from features.feature_engineering import make_features,feature_definitions
 from agents.debate_engine import DebateEngine
 from agents.technical_agent import TechnicalAgent
 from paper_trading.paper_metrics import metrics as paper_metrics
+from data_sources.provider_compliance import provider_compliance
 class SystemTests(unittest.TestCase):
  def db_path(self):
   path=Path.cwd()/'artifacts'/'test_dbs'/f'{uuid.uuid4().hex}.sqlite';path.parent.mkdir(parents=True,exist_ok=True);return path
@@ -31,7 +32,7 @@ class SystemTests(unittest.TestCase):
   self.assertTrue(0<=out['metrics']['p_target_before_stop']<=1)
  def test_required_persistence_tables(self):
   db=Database(self.db_path());names={row['name'] for row in db.rows("SELECT name FROM sqlite_master WHERE type='table'")}
-  required={'raw_prices','cleaned_prices','features','predictions','montecarlo_metrics','rankings','agent_outputs','paper_trades','equity_curve','experiments','drift_metrics','calibration_metrics','analog_memory','labels'};self.assertTrue(required<=names)
+  required={'raw_prices','cleaned_prices','features','predictions','montecarlo_metrics','rankings','agent_outputs','paper_trades','equity_curve','experiments','drift_metrics','calibration_metrics','analog_memory','labels','historical_backfills','strategy_archetype_scores'};self.assertTrue(required<=names)
  def test_universe_assets_and_throughput_contract(self):
   full,full_source=load_universe('full',force_file=True);backup,backup_source=load_file_fallback('backup');top,top_source=load_file_fallback('top500')
   self.assertGreaterEqual(len(full),8000);self.assertGreaterEqual(len(backup),2000);self.assertGreaterEqual(len(top),500)
@@ -59,6 +60,10 @@ class SystemTests(unittest.TestCase):
   db=Database(self.db_path());verdict,transcript=DebateEngine(db,[TechnicalAgent(db)]).run('2026-01-02',{'regime':'bull_low_vol','risk':.2})
   self.assertTrue(transcript[0]['evidence']);self.assertIn('confidence',transcript[0]);self.assertIn('action',verdict)
   self.assertEqual(paper_metrics([{'pnl':10}], [{'drawdown':-.12}])['max_drawdown'],-.12)
+ def test_unavailable_alternative_data_is_not_proxy(self):
+  statuses=provider_compliance()
+  for name in ('news_sentiment','options_flow','earnings_calendar'):
+   self.assertNotIn('proxy',statuses[name]['status']);self.assertFalse(statuses[name]['decision_use'])
  def test_report_required_sections(self):
   report={'date':'2026-01-02','regime':'BULL','regime_forecast':{},'decision':'RANKED WATCHLIST','picks':[],'debate':{},'narrative':{'text':'Narrative'},'universe_health':{},'analytics':{'paper':{},'factor_exposure':{}},'calibration':{'drift':{}},'stress':[],'provider_compliance':{'options_flow':{'status':'proxy-non-compliant','provider':'test','decision_use':False}}}
   html=build_html(report)

@@ -20,7 +20,7 @@ def build_estimator(params, random_state=42):
  if family=='logistic':
   return LogisticRegression(max_iter=1000,C=params['C'],class_weight=params['class_weight'],random_state=random_state)
  if family=='random_forest':
-  return RandomForestClassifier(n_estimators=params['n_estimators'],max_depth=params['max_depth'],min_samples_leaf=params['min_samples_leaf'],class_weight=params['class_weight'],random_state=random_state,n_jobs=-1)
+  return RandomForestClassifier(n_estimators=params['n_estimators'],max_depth=params['max_depth'],min_samples_leaf=params['min_samples_leaf'],class_weight=params['class_weight'],random_state=random_state,n_jobs=1)
  if family=='xgboost':
   try:
    from xgboost import XGBClassifier

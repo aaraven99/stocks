@@ -1,6 +1,10 @@
 import os,smtplib
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from email.mime.text import MIMEText
 def send(html,subject):
+ now=datetime.now(ZoneInfo('America/Chicago'))
+ if os.getenv('EMAIL_ALLOW_OFF_SCHEDULE','false').lower() not in ('1','true','yes') and (now.weekday()>4 or now.hour!=7):return {'sent':False,'reason':'outside_07_00_america_chicago_schedule'}
  to=os.getenv('EMAIL_TO'); user=os.getenv('GMAIL_USER'); password=os.getenv('GMAIL_APP_PASSWORD'); sender=os.getenv('EMAIL_FROM') or user
  if not (to and user and password):return {'sent':False,'reason':'email_credentials_or_recipient_missing'}
  msg=MIMEText(html,'html');msg['Subject']=subject;msg['From']=sender;msg['To']=to

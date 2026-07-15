@@ -1,0 +1,18 @@
+name: Live Universe Throughput
+on:
+  workflow_dispatch:
+jobs:
+  throughput:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      RUN_LIVE_THROUGHPUT: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r trading-ai-system/requirements.txt
+      - name: Fetch and validate 3,000-symbol throughput
+        working-directory: trading-ai-system
+        run: python -m unittest tests/test_live_throughput.py -v

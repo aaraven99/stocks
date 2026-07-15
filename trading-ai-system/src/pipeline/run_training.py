@@ -1,5 +1,5 @@
 """Weekly causal retraining from matured labels only; no synthetic labels or future features."""
-import json,sys,uuid
+import json,sys,uuid,shutil
 from datetime import datetime,timezone,date
 from pathlib import Path
 
@@ -17,6 +17,7 @@ from models.uncertainty import conformal_interval
 from storage.artifacts import ensure_artifacts,write_json,write_text
 from storage.db import Database
 from models.model_registry import ModelRegistry
+from models.hierarchical_bayes import shrink_probabilities
 
 
 def _now():
@@ -82,7 +83,7 @@ def main():
   print('training failed: calibration failed')
   return 2
 
- probabilities=np.clip(np.mean([m.predict_proba(X)[:,1] for m in models],axis=0),1e-5,1-1e-5)
+ probabilities=np.clip(shrink_probabilities(np.mean([m.predict_proba(X)[:,1] for m in models],axis=0).tolist()),1e-5,1-1e-5)
  importance=np.zeros(len(names))
  for model in models:
   calibrated=getattr(model,'calibrated_classifiers_',[])
@@ -95,12 +96,20 @@ def main():
  metrics={'validation':'purged_walk_forward_embargo','candidate_scores':scored[:10],'selected_candidates':winners,'brier':brier(y,probabilities),'logloss':float(log_loss(y,probabilities,labels=[0,1])),'calibration':calibration_curve(y,probabilities),'calibrators':['sigmoid_or_isotonic_by_candidate'],'uncertainty':{'conformal':conformal},'explainability':'shap_when_available_else_model_importance'}
 
  model_id='challenger_'+run_id
- artifacts=ensure_artifacts();path=artifacts/'champion_model.joblib'
+ artifacts=ensure_artifacts();path=artifacts/(model_id+'.joblib')
  bundle={'model_id':model_id,'feature_names':names,'models':models,'importance':importance,'conformal':conformal,'metrics':metrics}
  joblib.dump(bundle,path)
- registry=ModelRegistry(db);rollback=registry.rollback_if_breached()
+ registry=ModelRegistry(db)
+ existing=registry.champion()
+ existing_metrics=json.loads(existing.get('metrics_json') or '{}') if existing else {}
+ if existing and (not Path(existing.get('path','')).exists() or int(existing_metrics.get('training_rows',0))<60): db.execute("UPDATE models SET status='retired' WHERE model_id=?",(existing['model_id'],))
+ rollback=registry.rollback_if_breached()
  if rollback['decision']=='rollback': db.upsert('champion_challenger',{'date':date.today().isoformat(),'champion_id':rollback['champion_id'],'challenger_id':'automatic_rollback','decision':'rollback','reason':rollback['reason']},['date','challenger_id'])
  decision=registry.promote_if_better(model_id,'calibrated_challenger_ensemble_with_optional_xgboost',metrics,str(path))
+ if rollback['decision']=='rollback':
+  active=db.rows('SELECT path FROM models WHERE model_id=?',(rollback['champion_id'],))
+  if active and Path(active[0]['path']).exists():shutil.copy2(active[0]['path'],artifacts/'champion_model.joblib')
+ if decision['decision']=='promote':shutil.copy2(path,artifacts/'champion_model.joblib')
  db.upsert('champion_challenger',{'date':date.today().isoformat(),'champion_id':decision.get('champion_id',model_id),'challenger_id':decision.get('challenger_id',model_id),'decision':decision['decision'],'reason':decision['reason']},['date','challenger_id'])
  write_json('model_registry_snapshot.json',db.rows('SELECT * FROM models'))
  write_json('calibration_objects.json',metrics)

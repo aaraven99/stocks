@@ -11,7 +11,12 @@ def _bundle():
  path=ARTIFACTS/'champion_model.joblib'
  if not path.exists():_CACHE={};return _CACHE
  try:
-  import joblib;_CACHE=joblib.load(path);return _CACHE
+  import joblib
+  bundle=joblib.load(path)
+  from storage.db import Database
+  champion=Database().rows("SELECT model_id FROM models WHERE status='champion' ORDER BY trained_at DESC LIMIT 1")
+  if not champion or bundle.get('model_id')!=champion[0]['model_id']:_CACHE={};return _CACHE
+  _CACHE=bundle;return _CACHE
  except Exception:_CACHE={};return _CACHE
 def predict(features):
  bundle=_bundle();model_id='rule_based_cold_start';probs=[];attributions=[]

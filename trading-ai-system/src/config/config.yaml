@@ -4,6 +4,7 @@ system:
   database: artifacts/trading_system.sqlite
   cache_dir: .cache
   test_mode: false
+  fail_closed: true
 universe:
   mode: full
   fast_limit: 8000

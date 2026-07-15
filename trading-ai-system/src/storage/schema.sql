@@ -41,3 +41,5 @@ CREATE TABLE IF NOT EXISTS universe_health(date TEXT PRIMARY KEY,requested INTEG
 CREATE TABLE IF NOT EXISTS mc_engine_validation(ticker TEXT,asof_date TEXT,engine TEXT,predicted_probability REAL,outcome INTEGER,brier REAL,PRIMARY KEY(ticker,asof_date,engine));
 CREATE TABLE IF NOT EXISTS broker_orders(client_order_id TEXT PRIMARY KEY,broker_order_id TEXT,ticker TEXT,date TEXT,status TEXT,payload_json TEXT,response_json TEXT,updated_at TEXT);
 CREATE TABLE IF NOT EXISTS broker_account_snapshots(date TEXT PRIMARY KEY,equity REAL,cash REAL,buying_power REAL,details_json TEXT);
+CREATE TABLE IF NOT EXISTS historical_backfills(run_id TEXT PRIMARY KEY,started_at TEXT,finished_at TEXT,period TEXT,tickers_requested INTEGER,tickers_loaded INTEGER,samples_created INTEGER,labels_created INTEGER,mc_validation_rows INTEGER,failures_json TEXT);
+CREATE TABLE IF NOT EXISTS strategy_archetype_scores(ticker TEXT,date TEXT,archetype TEXT,score REAL,details_json TEXT,PRIMARY KEY(ticker,date,archetype));

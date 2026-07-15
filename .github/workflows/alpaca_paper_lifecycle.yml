@@ -1,0 +1,22 @@
+name: Alpaca Paper Lifecycle
+on:
+  workflow_dispatch:
+jobs:
+  lifecycle:
+    if: ${{ secrets.ALPACA_API_KEY != '' && secrets.ALPACA_SECRET_KEY != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      ALPACA_PAPER_TRADE: 'true'
+      RUN_ALPACA_INTEGRATION: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r trading-ai-system/requirements.txt
+      - name: Run paper account lifecycle test
+        working-directory: trading-ai-system
+        run: python -m unittest tests/test_alpaca_integration.py -v

@@ -8,6 +8,8 @@ An automated, SQLite-centered probabilistic swing-trading research system. It pr
 cd trading-ai-system
 python -m pip install -r requirements.txt
 python src/pipeline/run_daily.py --test-mode
+python src/pipeline/run_backfill.py --max-tickers 10 --period 5y --max-samples 80 --mc-sims 1000
+python src/pipeline/run_training.py
 streamlit run dashboard/app.py
 ```
 
@@ -23,3 +25,5 @@ The runner uses provider data when available, records all degradation, and never
 ## Operational notes
 
 `UNIVERSE_MODE=full` is intended for a dynamically sourced broad US universe. The bundled CSV files are resilient offline fallbacks. Free providers have coverage and rate-limit constraints, so production results must be reviewed for universe-health/degradation flags before use.
+
+Historical training requires real provider access. Configure `FINNHUB_API_KEY`, `POLYGON_API_KEY`, and `FRED_API_KEY` only when those licensed feeds are available; unavailable providers are excluded from decision features rather than replaced with deterministic proxy values. The weekly GitHub workflow performs a bounded real-history backfill before training and uploads the resulting SQLite database, champion artifact, calibration objects, and backfill manifest.
