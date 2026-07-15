@@ -24,3 +24,11 @@ class ModelRegistry(ModelStore):
    self.db.execute("UPDATE models SET status='rolled_back' WHERE model_id=?",(row['model_id'],))
   self.db.execute("UPDATE models SET status='champion' WHERE model_id=?",(rows[0]['model_id'],))
   return {'decision':'rollback','champion_id':rows[0]['model_id'],'reason':reason}
+ def rollback_if_breached(self,max_brier=.30,reason='champion_brier_threshold_breached'):
+  champion=self.champion()
+  if not champion:return {'decision':'no_champion'}
+  import json
+  try:brier=float(json.loads(champion.get('metrics_json') or '{}').get('brier',0))
+  except Exception:brier=0
+  if brier<=max_brier:return {'decision':'within_limit','champion_id':champion['model_id'],'brier':brier}
+  result=self.rollback_to_latest_retired(reason);result['breached_brier']=brier;return result

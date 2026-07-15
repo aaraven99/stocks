@@ -98,7 +98,9 @@ def main():
  artifacts=ensure_artifacts();path=artifacts/'champion_model.joblib'
  bundle={'model_id':model_id,'feature_names':names,'models':models,'importance':importance,'conformal':conformal,'metrics':metrics}
  joblib.dump(bundle,path)
- registry=ModelRegistry(db);decision=registry.promote_if_better(model_id,'calibrated_challenger_ensemble_with_optional_xgboost',metrics,str(path))
+ registry=ModelRegistry(db);rollback=registry.rollback_if_breached()
+ if rollback['decision']=='rollback': db.upsert('champion_challenger',{'date':date.today().isoformat(),'champion_id':rollback['champion_id'],'challenger_id':'automatic_rollback','decision':'rollback','reason':rollback['reason']},['date','challenger_id'])
+ decision=registry.promote_if_better(model_id,'calibrated_challenger_ensemble_with_optional_xgboost',metrics,str(path))
  db.upsert('champion_challenger',{'date':date.today().isoformat(),'champion_id':decision.get('champion_id',model_id),'challenger_id':decision.get('challenger_id',model_id),'decision':decision['decision'],'reason':decision['reason']},['date','challenger_id'])
  write_json('model_registry_snapshot.json',db.rows('SELECT * FROM models'))
  write_json('calibration_objects.json',metrics)

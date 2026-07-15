@@ -11,6 +11,10 @@ from data_sources.ticker_universe_source import load_file_fallback,load_universe
 from pipeline.stages import fast_filter,select_deep_tickers,select_fast_universe,validate_universe_contract
 from models.model_registry import ModelRegistry
 from reporting.html_builder import build as build_html
+from features.feature_engineering import make_features,feature_definitions
+from agents.debate_engine import DebateEngine
+from agents.technical_agent import TechnicalAgent
+from paper_trading.paper_metrics import metrics as paper_metrics
 class SystemTests(unittest.TestCase):
  def db_path(self):
   path=Path.cwd()/'artifacts'/'test_dbs'/f'{uuid.uuid4().hex}.sqlite';path.parent.mkdir(parents=True,exist_ok=True);return path
@@ -43,6 +47,18 @@ class SystemTests(unittest.TestCase):
   registry.register('champion-v2','rf','retired',{'brier':.18},'v2.joblib')
   rolled=registry.rollback_to_latest_retired('regression')
   self.assertEqual(rolled['decision'],'rollback');self.assertEqual(registry.champion()['model_id'],'champion-v2')
+  registry.register_champion('champion-bad','rf',{'brier':.45},'bad.joblib')
+  registry.register('champion-good','rf','retired',{'brier':.18},'good.joblib')
+  auto=registry.rollback_if_breached(.30)
+  self.assertEqual(auto['decision'],'rollback');self.assertEqual(registry.champion()['model_id'],'champion-good')
+ def test_feature_categories_agents_and_paper_metrics(self):
+  idx=pd.bdate_range('2025-01-01',periods=280);base=np.linspace(100,130,len(idx));df=pd.DataFrame({'Open':base*.99,'High':base*1.01,'Low':base*.98,'Close':base,'Volume':np.linspace(1e6,2e6,len(idx))},index=idx)
+  features=make_features(df,{'macro':{'rates_proxy_return':.01},'sentiment':{'sentiment':.2,'news_count':3},'options':{'put_call_proxy':.8},'event':{'event_risk':0},'breadth':{'pct_above_50d':.6}})
+  categories={item['category'] for item in feature_definitions().values()}
+  self.assertGreaterEqual(len(features),20);self.assertIn('trend_weekly_return_5w',features);self.assertGreaterEqual(len(categories),15)
+  db=Database(self.db_path());verdict,transcript=DebateEngine(db,[TechnicalAgent(db)]).run('2026-01-02',{'regime':'bull_low_vol','risk':.2})
+  self.assertTrue(transcript[0]['evidence']);self.assertIn('confidence',transcript[0]);self.assertIn('action',verdict)
+  self.assertEqual(paper_metrics([{'pnl':10}], [{'drawdown':-.12}])['max_drawdown'],-.12)
  def test_report_required_sections(self):
   report={'date':'2026-01-02','regime':'BULL','regime_forecast':{},'decision':'RANKED WATCHLIST','picks':[],'debate':{},'narrative':{'text':'Narrative'},'universe_health':{},'analytics':{'paper':{},'factor_exposure':{}},'calibration':{'drift':{}},'stress':[],'provider_compliance':{'options_flow':{'status':'proxy-non-compliant','provider':'test','decision_use':False}}}
   html=build_html(report)
