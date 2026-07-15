@@ -1,0 +1,13 @@
+{
+  "run_id": "daily_2026-07-15_cad8274c",
+  "status": "success",
+  "stage_timings": {
+    "universe": 0.001,
+    "batch_ingestion": 0.156,
+    "cross_asset": 0.15,
+    "spy_proxy": 0.011,
+    "vix_proxy": 0.014,
+    "macro": 0.01
+  },
+  "errors": []
+}

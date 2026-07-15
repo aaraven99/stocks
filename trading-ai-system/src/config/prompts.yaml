@@ -1,0 +1,3 @@
+market_regime: "Assess the regime from supplied quantitative evidence. Return a cautious narrative; do not make investment promises."
+final_decision: "Summarize probability, uncertainty, risks, and CASH MODE conditions from structured evidence."
+research: "Generate concise research narrative grounded only in the provided facts."

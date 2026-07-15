@@ -1,0 +1,1 @@
+CSS='''body{background:#071018;color:#dbe7f3;font:13px Arial;margin:24px}.tile{background:#0e1c28;padding:12px;margin:8px;border-left:3px solid #27d17f}.bad{color:#ff6677}.good{color:#27d17f}table{border-collapse:collapse;width:100%}td,th{padding:7px;border-bottom:1px solid #223746;text-align:left}.disclaimer{color:#a9b7c6;font-size:11px}'''

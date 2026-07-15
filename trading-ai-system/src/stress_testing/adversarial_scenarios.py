@@ -1,0 +1,1 @@
+def generate(features): return [{'scenario':'feature_break','severity':min(.25,abs(features.get('volatility_20d',.2))*.5)},{'scenario':'gap_through_stop','severity':.12+features.get('event_risk',0)*.08}]

@@ -1,0 +1,3 @@
+import numpy as np
+def score_ohlcv(df):
+ missing=float(df[['Open','High','Low','Close','Volume']].isna().mean().mean()); gaps=float((df.Close.pct_change().abs()>0.20).mean()); stale=float((df.Close.diff()==0).tail(20).mean()); vol=float((df.Volume<=0).mean()); distortion=float(((df.Close.pct_change().abs()>0.45)&(df.Volume<df.Volume.rolling(20).median())).mean()); confidence=max(0.,1-missing*3-gaps*2-stale-vol-distortion); return {'missing_candle_pct':missing,'gap_anomaly_score':gaps,'volume_anomaly_score':vol,'stale_price_score':stale,'corporate_action_distortion':distortion,'data_confidence':confidence}

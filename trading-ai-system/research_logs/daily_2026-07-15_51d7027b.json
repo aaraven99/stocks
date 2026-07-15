@@ -1,0 +1,11 @@
+{
+  "run_id": "daily_2026-07-15_51d7027b",
+  "status": "success",
+  "stage_timings": {
+    "universe": 0.001,
+    "batch_ingestion": 0.053,
+    "cross_asset": 0.054,
+    "macro": 0.005
+  },
+  "errors": []
+}

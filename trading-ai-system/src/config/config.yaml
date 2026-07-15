@@ -1,0 +1,32 @@
+system:
+  timezone: America/Chicago
+  seed: 42
+  database: artifacts/trading_system.sqlite
+  cache_dir: .cache
+  test_mode: false
+universe:
+  mode: full
+  fast_limit: 8000
+  deep_limit: 250
+  failure_backup_pct: 0.20
+  failure_top500_pct: 0.50
+risk:
+  max_positions: 12
+  max_position_weight: 0.10
+  max_sector_weight: 0.25
+  max_drawdown_kill: 0.15
+  min_data_confidence: 0.55
+  min_score: 0.52
+  stop_loss_pct: 0.06
+  take_profit_pct: 0.12
+montecarlo:
+  simulations: 50000
+  horizon_days: 10
+  engines: [gbm, bootstrap, regime_switching, garch, copula]
+email:
+  send_hour_local: 7
+  enabled: true
+models:
+  feature_version: v1
+  embargo_days: 5
+  calibration_bins: 10
