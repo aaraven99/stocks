@@ -1,0 +1,11 @@
+name: Daily Run
+on:
+  schedule:
+    # GitHub cron is UTC. Run at both possible UTC offsets and gate to
+    # exactly 07:00 America/Chicago so DST does not shift the briefing.
+    - cron: '0 12,13 * * 1-5'
+  workflow_dispatch:
+jobs:
+  research:
+    uses: ./.github/workflows/daily_quant_research.yml
+    secrets: inherit

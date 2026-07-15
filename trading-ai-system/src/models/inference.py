@@ -2,7 +2,7 @@
 from pathlib import Path
 import numpy as np
 from core.constants import ARTIFACTS
-from models.uncertainty import ensemble_uncertainty,confidence
+from models.uncertainty import ensemble_uncertainty,confidence,apply_conformal
 from models.explainability import explain
 _CACHE=None
 def _bundle():
@@ -27,4 +27,5 @@ def predict(features):
   z=.8*features.get('momentum_20d',0)+.6*features.get('trend_sma50_gap',0)-.7*features.get('volatility_20d',.2)+.2*features.get('news_sentiment',0)
   probs=[float(1/(1+np.exp(-z)))];attributions=explain(features)
  p=float(np.mean(probs));u=ensemble_uncertainty(probs) if len(probs)>1 else .18
- return {'model_id':model_id,'probability':p,'expected_return':float(features.get('momentum_20d',0)*.35+features.get('trend_sma50_gap',0)*.2),'expected_drawdown':-abs(float(features.get('volatility_20d',.2)))*.08,'target_before_stop':float(max(0,min(1,p*(1-features.get('event_risk',0)*.2)))),'uncertainty':u,'confidence':confidence(p,u),'explanation':sorted(attributions,key=lambda x:abs(x['attribution']),reverse=True)[:10]}
+ interval=apply_conformal(p,bundle.get('conformal',{})) if bundle else {'lower':max(0,p-u),'upper':min(1,p+u),'qhat':u,'alpha':None}
+ return {'model_id':model_id,'probability':p,'expected_return':float(features.get('momentum_20d',0)*.35+features.get('trend_sma50_gap',0)*.2),'expected_drawdown':-abs(float(features.get('volatility_20d',.2)))*.08,'target_before_stop':float(max(0,min(1,p*(1-features.get('event_risk',0)*.2)))),'uncertainty':u,'confidence':confidence(p,u),'conformal_interval':interval,'explanation':sorted(attributions,key=lambda x:abs(x['attribution']),reverse=True)[:10]}

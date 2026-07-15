@@ -1,8 +1,7 @@
 name: Daily Quant Research
 on:
-  schedule:
-    - cron: '0 7 * * 1-5'
   workflow_dispatch:
+  workflow_call:
 jobs:
   research:
     runs-on: ubuntu-latest
@@ -18,6 +17,15 @@ jobs:
       ALPACA_PAPER_TRADE: 'true'
       ALPACA_DATA_FEED: iex
     steps:
+      - name: Enforce 7 AM America/Chicago schedule
+        if: github.event_name == 'schedule'
+        run: |
+          local_hour="$(TZ=America/Chicago date +%H)"
+          local_dow="$(TZ=America/Chicago date +%u)"
+          if [ "$local_hour" != "07" ] || [ "$local_dow" -gt 5 ]; then
+            echo "Skipping: local time is not 07:00 Monday-Friday America/Chicago."
+            exit 78
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -46,4 +54,7 @@ jobs:
           path: |
             trading-ai-system/artifacts/
             trading-ai-system/research_logs/
+            trading-ai-system/artifacts/trading_system.sqlite
+            trading-ai-system/artifacts/daily_report.html
+            trading-ai-system/artifacts/champion_model.joblib
           retention-days: 30

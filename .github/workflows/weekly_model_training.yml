@@ -1,8 +1,7 @@
 name: Weekly Model Training
 on:
-  schedule:
-    - cron: '0 2 * * 6'
   workflow_dispatch:
+  workflow_call:
 jobs:
   training:
     runs-on: ubuntu-latest
@@ -26,4 +25,9 @@ jobs:
         if: always()
         with:
           name: weekly-model-artifacts-${{ github.run_id }}
-          path: trading-ai-system/artifacts/
+          path: |
+            trading-ai-system/artifacts/
+            trading-ai-system/research_logs/
+            trading-ai-system/artifacts/champion_model.joblib
+            trading-ai-system/artifacts/model_registry_snapshot.json
+            trading-ai-system/artifacts/calibration_objects.json
