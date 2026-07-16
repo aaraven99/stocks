@@ -49,7 +49,22 @@ jobs:
         run: python src/pipeline/run_daily.py
       - name: Send America/Chicago briefing
         working-directory: trading-ai-system
-        run: PYTHONPATH=src python -c "from reporting.email_sender import send; from pathlib import Path; from core.time_utils import trading_date; print(send(Path('artifacts/daily_report.html').read_text(),'Systematic Swing Research '+trading_date()))"
+        env:
+          EMAIL_ALLOW_OFF_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          from pathlib import Path
+          from core.time_utils import trading_date
+          from reporting.email_sender import send
+
+          result = send(
+              Path('artifacts/daily_report.html').read_text(),
+              'Systematic Swing Research ' + trading_date(),
+          )
+          print(result)
+          if not result.get('sent'):
+              raise SystemExit('Email was not sent: ' + result.get('reason', 'unknown reason'))
+          PY
       - name: Healthcheck
         working-directory: trading-ai-system
         run: python src/pipeline/run_healthcheck.py
