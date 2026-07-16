@@ -1,5 +1,6 @@
-import json,sys,unittest,uuid
+import json,os,sys,unittest,uuid
 from pathlib import Path
+from unittest.mock import patch
 import numpy as np
 import pandas as pd
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
@@ -61,9 +62,15 @@ class SystemTests(unittest.TestCase):
   self.assertTrue(transcript[0]['evidence']);self.assertIn('confidence',transcript[0]);self.assertIn('action',verdict)
   self.assertEqual(paper_metrics([{'pnl':10}], [{'drawdown':-.12}])['max_drawdown'],-.12)
  def test_unavailable_alternative_data_is_not_proxy(self):
-  statuses=provider_compliance()
+  with patch.dict(os.environ,{'FINNHUB_API_KEY':'','POLYGON_API_KEY':'','FRED_API_KEY':''},clear=False):
+   statuses=provider_compliance()
   for name in ('news_sentiment','options_flow','earnings_calendar'):
    self.assertNotIn('proxy',statuses[name]['status']);self.assertFalse(statuses[name]['decision_use'])
+ def test_configured_alternative_data_is_decision_usable(self):
+  with patch.dict(os.environ,{'FINNHUB_API_KEY':'test','POLYGON_API_KEY':'test','FRED_API_KEY':'test'},clear=False):
+   statuses=provider_compliance()
+  for name in ('macro','news_sentiment','options_flow','earnings_calendar'):
+   self.assertEqual(statuses[name]['status'],'provider-backed');self.assertTrue(statuses[name]['decision_use'])
  def test_report_required_sections(self):
   report={'date':'2026-01-02','regime':'BULL','regime_forecast':{},'decision':'RANKED WATCHLIST','picks':[],'debate':{},'narrative':{'text':'Narrative'},'universe_health':{},'analytics':{'paper':{},'factor_exposure':{}},'calibration':{'drift':{}},'stress':[],'provider_compliance':{'options_flow':{'status':'proxy-non-compliant','provider':'test','decision_use':False}}}
   html=build_html(report)
