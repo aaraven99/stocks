@@ -1,7 +1,8 @@
 name: Weekly Model Training
 on:
+  schedule:
+    - cron: '0 2 * * 6'
   workflow_dispatch:
-  workflow_call:
 jobs:
   training:
     runs-on: ubuntu-latest

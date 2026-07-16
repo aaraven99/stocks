@@ -1,9 +1,0 @@
-name: Weekly Train
-on:
-  schedule:
-    - cron: '0 2 * * 6'
-  workflow_dispatch:
-jobs:
-  training:
-    uses: ./.github/workflows/weekly_model_training.yml
-    secrets: inherit
