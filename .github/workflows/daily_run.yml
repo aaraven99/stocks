@@ -24,30 +24,53 @@ jobs:
       ALPACA_DATA_FEED: iex
     steps:
       - name: Enforce 7 AM America/Chicago schedule
-        if: github.event_name == 'schedule'
+        id: schedule_gate
         run: |
-          local_hour="$(TZ=America/Chicago date +%H)"
-          local_dow="$(TZ=America/Chicago date +%u)"
-          if [ "$local_hour" != "07" ] || [ "$local_dow" -gt 5 ]; then
-            echo "Skipping: local time is not 07:00 Monday-Friday America/Chicago."
-            exit 78
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          local_dow="$(TZ=America/Chicago date +%u)"
+          local_zone="$(TZ=America/Chicago date +%Z)"
+          expected_zone=""
+          case "$GITHUB_EVENT_SCHEDULE" in
+            "0 12 * * 1-5") expected_zone="CDT" ;;
+            "0 13 * * 1-5") expected_zone="CST" ;;
+          esac
+
+          if [ "$local_dow" -le 5 ] && [ "$local_zone" = "$expected_zone" ]; then
+            echo "Running the $local_zone 07:00 America/Chicago schedule."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping fallback schedule: $local_zone does not match $GITHUB_EVENT_SCHEDULE."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
       - uses: actions/checkout@v4
+        if: steps.schedule_gate.outputs.run == 'true'
       - uses: actions/setup-python@v5
+        if: steps.schedule_gate.outputs.run == 'true'
         with:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: trading-ai-system/requirements.txt
       - run: pip install -r trading-ai-system/requirements.txt
+        if: steps.schedule_gate.outputs.run == 'true'
       - uses: actions/cache@v4
+        if: steps.schedule_gate.outputs.run == 'true'
         with:
           path: trading-ai-system/.cache
           key: market-cache-${{ github.run_id }}
           restore-keys: market-cache-
       - name: Run research and paper execution
+        if: steps.schedule_gate.outputs.run == 'true'
         working-directory: trading-ai-system
         run: python src/pipeline/run_daily.py
       - name: Send America/Chicago briefing
+        if: steps.schedule_gate.outputs.run == 'true'
         working-directory: trading-ai-system
         env:
           EMAIL_ALLOW_OFF_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
@@ -66,10 +89,11 @@ jobs:
               raise SystemExit('Email was not sent: ' + result.get('reason', 'unknown reason'))
           PY
       - name: Healthcheck
+        if: steps.schedule_gate.outputs.run == 'true'
         working-directory: trading-ai-system
         run: python src/pipeline/run_healthcheck.py
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.schedule_gate.outputs.run == 'true'
         with:
           name: quant-research-${{ github.run_id }}
           path: |
