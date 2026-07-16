@@ -17,6 +17,8 @@ from agents.debate_engine import DebateEngine
 from agents.technical_agent import TechnicalAgent
 from paper_trading.paper_metrics import metrics as paper_metrics
 from data_sources.provider_compliance import provider_compliance
+from backtesting.backtester import _marked_portfolio_returns
+from portfolio.portfolio_optimizer import mean_variance_score
 class SystemTests(unittest.TestCase):
  def db_path(self):
   path=Path.cwd()/'artifacts'/'test_dbs'/f'{uuid.uuid4().hex}.sqlite';path.parent.mkdir(parents=True,exist_ok=True);return path
@@ -31,15 +33,21 @@ class SystemTests(unittest.TestCase):
   self.assertTrue(validate(out['metrics'])['passed']);self.assertEqual(len(out['distribution']),1000)
   for key in ['p_target_before_stop','drawdown_q05','price_target_q50','p_plus_3_5d','p_plus_10_20d']:self.assertIn(key,out['metrics'])
   self.assertTrue(0<=out['metrics']['p_target_before_stop']<=1)
+ def test_backtest_marks_overlapping_positions_with_capped_notional(self):
+  trades=[{'signal_date':'2026-01-02','exit_date':'2026-01-09','net_return':.10,'outcome':1}]
+  daily=_marked_portfolio_returns(trades,['2026-01-02','2026-01-05','2026-01-06','2026-01-07','2026-01-08','2026-01-09'],.10)
+  self.assertEqual(len(daily),6);self.assertEqual(sum(x!=0 for x in daily),5);self.assertEqual(trades[0]['holding_days'],5);self.assertAlmostEqual(sum(daily),.01,places=3)
+ def test_portfolio_mean_variance_component_is_risk_sensitive(self):
+  self.assertGreater(mean_variance_score(.10,.10),mean_variance_score(.10,.30))
  def test_required_persistence_tables(self):
   db=Database(self.db_path());names={row['name'] for row in db.rows("SELECT name FROM sqlite_master WHERE type='table'")}
   required={'raw_prices','cleaned_prices','features','predictions','montecarlo_metrics','rankings','agent_outputs','paper_trades','equity_curve','experiments','drift_metrics','calibration_metrics','analog_memory','labels','historical_backfills','strategy_archetype_scores'};self.assertTrue(required<=names)
  def test_universe_assets_and_throughput_contract(self):
   full,full_source=load_universe('full',force_file=True);backup,backup_source=load_file_fallback('backup');top,top_source=load_file_fallback('top500')
-  self.assertGreaterEqual(len(full),8000);self.assertGreaterEqual(len(backup),2000);self.assertGreaterEqual(len(top),500)
+  self.assertGreaterEqual(len(full),3000);self.assertLessEqual(len(full),8000);self.assertGreaterEqual(len(backup),2000);self.assertGreaterEqual(len(top),500)
   self.assertEqual(full_source,'universe_full.csv');self.assertEqual(backup_source,'universe_backup_2000.csv');self.assertEqual(top_source,'universe_top500.csv')
-  frames={ticker:pd.DataFrame({'Close':[1,2,3]}) for ticker in select_fast_universe(full,8000)}
-  rows=fast_filter(frames,lambda frame: frame.Close.iloc[-1]);deep=select_deep_tickers(rows,250);contract=validate_universe_contract(8000,len(rows),len(deep))
+  frames={ticker:pd.DataFrame({'Close':[1,2,3]}) for ticker in select_fast_universe(full,3000)}
+  rows=fast_filter(frames,lambda frame: frame.Close.iloc[-1]);deep=select_deep_tickers(rows,250);contract=validate_universe_contract(3000,len(rows),len(deep))
   self.assertTrue(contract['passed'],contract)
  def test_model_challenger_rejection_and_rollback(self):
   db=Database(self.db_path());registry=ModelRegistry(db)

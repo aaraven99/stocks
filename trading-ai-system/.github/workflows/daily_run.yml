@@ -1,47 +1,84 @@
-name: Daily Quant Research
+name: Daily Run
 on:
   schedule:
     - cron: '0 7 * * 1-5'
+    - cron: '0 8 * * 1-5'
   workflow_dispatch:
 jobs:
   research:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 180
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       GMAIL_USER: ${{ secrets.GMAIL_USER }}
       GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
       EMAIL_TO: ${{ secrets.EMAIL_TO }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      STARTING_CAPITAL: ${{ vars.STARTING_CAPITAL || '100000' }}
+      UNIVERSE_MODE: ${{ vars.UNIVERSE_MODE || 'full' }}
+      MONTE_CARLO_SIMS: ${{ vars.MONTE_CARLO_SIMS || '50000' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-          cache-dependency-path: trading-ai-system/requirements.txt
+      - name: Gate CST/CDT fallback schedule
+        id: schedule_gate
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          zone="$(TZ=America/Chicago date +%Z)"; expected=""
+          case "$GITHUB_EVENT_SCHEDULE" in "0 7 * * 1-5") expected="CDT" ;; "0 8 * * 1-5") expected="CST" ;; esac
+          if [ "$(TZ=America/Chicago date +%u)" -le 5 ] && [ "$zone" = "$expected" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
+      - uses: actions/checkout@v6
+        if: steps.schedule_gate.outputs.run == 'true'
+      - uses: actions/setup-python@v6
+        if: steps.schedule_gate.outputs.run == 'true'
+        with: {python-version: '3.11', cache: pip, cache-dependency-path: trading-ai-system/requirements.txt}
       - run: pip install -r trading-ai-system/requirements.txt
-      - uses: actions/cache@v4
-        with:
-          path: trading-ai-system/.cache
-          key: market-cache-${{ github.run_id }}
-          restore-keys: market-cache-
-      - name: Run overnight research
-        working-directory: trading-ai-system
-        run: python src/pipeline/run_daily.py
-      - name: Send 7AM America/Chicago briefing
+        if: steps.schedule_gate.outputs.run == 'true'
+      - working-directory: trading-ai-system
+        if: steps.schedule_gate.outputs.run == 'true'
+        run: |
+          python -m unittest discover -s tests -v
+          python src/pipeline/run_daily.py
+          python src/pipeline/run_healthcheck.py
+      - name: Assert required daily artifacts
+        if: steps.schedule_gate.outputs.run == 'true'
         working-directory: trading-ai-system
         run: |
-          python -c "from datetime import datetime; from zoneinfo import ZoneInfo; import time; now=datetime.now(ZoneInfo('America/Chicago')); target=now.replace(hour=7,minute=0,second=0,microsecond=0); time.sleep(max(0,(target-now).total_seconds()))"
-          PYTHONPATH=src python -c "from reporting.email_sender import send; from pathlib import Path; from core.time_utils import trading_date; print(send(Path('artifacts/daily_report.html').read_text(),'Systematic Swing Research '+trading_date()))"
-      - name: Healthcheck
+          test -s artifacts/trading_system.sqlite
+          test -s artifacts/daily_report.html
+          test -s artifacts/daily_report.md
+          test -s artifacts/manifest.json
+          test -s artifacts/equity_curve.png
+      - name: Deliver America/Chicago briefing at 07:00
+        if: steps.schedule_gate.outputs.run == 'true'
         working-directory: trading-ai-system
-        run: python src/pipeline/run_healthcheck.py
-      - uses: actions/upload-artifact@v4
-        if: always()
+        env:
+          EMAIL_SCHEDULED_RUN: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
+          EMAIL_ALLOW_OFF_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+        run: |
+          PYTHONPATH=src python - <<'PY'
+          from datetime import datetime, timedelta
+          import os
+          from pathlib import Path
+          from time import sleep
+          from zoneinfo import ZoneInfo
+          from core.time_utils import trading_date
+          from reporting.email_sender import send
+          now = datetime.now(ZoneInfo('America/Chicago'))
+          target = now.replace(hour=7, minute=0, second=0, microsecond=0)
+          if now < target:
+              sleep((target-now).total_seconds())
+          elif now > target + timedelta(minutes=5) and os.getenv('EMAIL_ALLOW_OFF_SCHEDULE') != 'true':
+              raise SystemExit('Pipeline completed too late for the 07:00 America/Chicago delivery window')
+          result = send(Path('artifacts/daily_report.html').read_text(), 'Systematic Swing Research '+trading_date())
+          print(result)
+          if not result.get('sent'):
+              raise SystemExit('Email was not sent: '+result.get('reason','unknown'))
+          PY
+      - uses: actions/upload-artifact@v5
+        if: always() && steps.schedule_gate.outputs.run == 'true'
         with:
           name: quant-research-${{ github.run_id }}
-          path: |
-            trading-ai-system/artifacts/
-            trading-ai-system/research_logs/
-          retention-days: 30
+          path: trading-ai-system/artifacts/
+          if-no-files-found: error

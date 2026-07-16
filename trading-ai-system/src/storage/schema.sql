@@ -43,3 +43,10 @@ CREATE TABLE IF NOT EXISTS broker_orders(client_order_id TEXT PRIMARY KEY,broker
 CREATE TABLE IF NOT EXISTS broker_account_snapshots(date TEXT PRIMARY KEY,equity REAL,cash REAL,buying_power REAL,details_json TEXT);
 CREATE TABLE IF NOT EXISTS historical_backfills(run_id TEXT PRIMARY KEY,started_at TEXT,finished_at TEXT,period TEXT,tickers_requested INTEGER,tickers_loaded INTEGER,samples_created INTEGER,labels_created INTEGER,mc_validation_rows INTEGER,failures_json TEXT);
 CREATE TABLE IF NOT EXISTS strategy_archetype_scores(ticker TEXT,date TEXT,archetype TEXT,score REAL,details_json TEXT,PRIMARY KEY(ticker,date,archetype));
+CREATE TABLE IF NOT EXISTS paper_account(account_id TEXT PRIMARY KEY,starting_capital REAL,cash REAL,realized_pnl REAL,updated_at TEXT);
+CREATE TABLE IF NOT EXISTS paper_positions_daily(date TEXT,ticker TEXT,shares REAL,entry REAL,mark REAL,market_value REAL,unrealized_pnl REAL,stop REAL,take_profit REAL,weight REAL,PRIMARY KEY(date,ticker));
+CREATE TABLE IF NOT EXISTS execution_events(id INTEGER PRIMARY KEY AUTOINCREMENT,date TEXT,ticker TEXT,event_type TEXT,side TEXT,reference_price REAL,fill_price REAL,shares REAL,spread_cost REAL,slippage_cost REAL,commission REAL,details_json TEXT);
+CREATE TABLE IF NOT EXISTS backtest_runs(run_id TEXT PRIMARY KEY,started_at TEXT,finished_at TEXT,status TEXT,config_json TEXT,metrics_json TEXT,acceptance_json TEXT);
+CREATE TABLE IF NOT EXISTS backtest_trades(run_id TEXT,ticker TEXT,signal_date TEXT,exit_date TEXT,side TEXT,probability REAL,gross_return REAL,net_return REAL,cost_bps REAL,outcome INTEGER,holding_days INTEGER,notional_fraction REAL,PRIMARY KEY(run_id,ticker,signal_date));
+CREATE TABLE IF NOT EXISTS mc_validation_metrics(date TEXT,engine TEXT,n INTEGER,brier REAL,logloss REAL,calibration_json TEXT,PRIMARY KEY(date,engine));
+CREATE TABLE IF NOT EXISTS data_quarantine(id INTEGER PRIMARY KEY AUTOINCREMENT,source_table TEXT,record_key TEXT,reason TEXT,payload_json TEXT,quarantined_at TEXT);

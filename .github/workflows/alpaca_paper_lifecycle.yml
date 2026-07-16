@@ -11,7 +11,7 @@ jobs:
       ALPACA_PAPER_TRADE: 'true'
       RUN_ALPACA_INTEGRATION: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Verify Alpaca credentials
         shell: bash
         run: |
@@ -19,7 +19,7 @@ jobs:
             echo "ALPACA_API_KEY and ALPACA_SECRET_KEY must be configured in GitHub Actions secrets."
             exit 1
           fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r trading-ai-system/requirements.txt

@@ -29,9 +29,10 @@ def build(report):
   f"<tr><td>{x.get('scenario')}</td><td>{_pct(x.get('avg_pnl',0))}</td><td>{float(x.get('avg_penalty',0)):.3f}</td></tr>"
   for x in report.get('stress',[])
  ) or '<tr><td colspan="3">No stress rows for this run</td></tr>'
+ mc_validation_rows=''.join(f"<tr><td>{x.get('engine')}</td><td>{x.get('n',0)}</td><td>{float(x.get('brier',0)):.4f}</td><td>{float(x.get('logloss',0)):.4f}</td></tr>" for x in report.get('mc_validation',[])) or '<tr><td colspan="4">Insufficient matured MC forecasts</td></tr>'
  forecast=report.get('regime_forecast',{});health=report.get('universe_health',{});analytics=report.get('analytics',{});paper=analytics.get('paper',{});debate=report.get('debate',{});cal=report.get('calibration',{})
  narrative=report.get('narrative',{}).get('text','No narrative available.')
- factor=analytics.get('factor_exposure',{})
+ factor=analytics.get('factor_exposure',{});attribution=analytics.get('attribution',{})
  providers=report.get('provider_compliance',{})
  provider_rows=''.join(f"<tr><td>{name}</td><td>{item['status']}</td><td>{item['provider']}</td><td>{'allowed' if item['decision_use'] else 'excluded from decisions'}</td></tr>" for name,item in providers.items())
  return f'''<html><head><style>{CSS}</style></head><body>
@@ -43,18 +44,20 @@ def build(report):
 <table><tr><th>Ticker</th><th>Action</th><th>Score</th><th>ML P(positive)</th><th>MC EV</th><th>MC VaR 95</th><th>P(target before stop)</th><th>Allocation</th></tr>{rows}</table>
 <h2>Monte Carlo Summary</h2>
 <table><tr><th>Ticker</th><th>P(+3%, 5d)</th><th>P(+5%, 10d)</th><th>P(+10%, 20d)</th><th>P(stop first)</th><th>CVaR 95</th><th>Median target</th></tr>{mc_rows}</table>
+<h3>Daily Monte Carlo Validation</h3><table><tr><th>Engine</th><th>N</th><th>Brier</th><th>Log loss</th></tr>{mc_validation_rows}</table>
 <h2>ML Confidence, Calibration & Drift</h2>
 <p>Brier: {float(cal.get('brier',0)):.4f} | Drift PSI: {float(cal.get('drift',{}).get('psi',0)):.4f} | Drift flag: {cal.get('drift',{}).get('flag','unknown')}</p>
 <h2>Stress Test Results</h2>
 <table><tr><th>Scenario</th><th>Average PnL</th><th>Average Penalty</th></tr>{stress_rows}</table>
 <h2>Paper Trading & Equity Curve</h2>
 <p>Closed trades: {paper.get('closed_trades',0)} | Win rate: {_pct(paper.get('win_rate',0))} | Profit factor: {_num(paper.get('profit_factor',0))} | Max drawdown: {_pct(paper.get('max_drawdown',0))} | Risk of ruin proxy: {_pct(analytics.get('risk_of_ruin',0))}</p>
-<p>Embedded chart artifact: <code>{report.get('equity_chart_artifact','equity_curve_chart.html')}</code></p>
-<iframe title="Paper trading equity curve" src="{report.get('equity_chart_artifact','equity_curve_chart.html')}" style="width:100%;height:420px;border:0"></iframe>
+<p>Interactive artifact: <code>{report.get('equity_chart_artifact','equity_curve_chart.html')}</code></p>
+<img alt="Paper trading equity curve" src="cid:equity_curve" style="width:100%;max-width:1000px;height:auto;border:1px solid #223746"/>
 <h2>Agent Debate Summary</h2>
 <p>Bull score: {debate.get('bull_score',0):.2f}; Bear score: {debate.get('bear_score',0):.2f}; Committee verdict: {debate.get('action','CASH')}</p>
 <h2>Attribution Summary</h2>
 <p>Portfolio factor exposure: {factor}</p>
+<p>Closed-trade attribution: {attribution.get('count',0)} trades; total realized P&amp;L {_num(attribution.get('total_pnl',0))}.</p>
 <h2>Alternative Data Governance</h2>
 <table><tr><th>Source</th><th>Status</th><th>Provider</th><th>Decision use</th></tr>{provider_rows or '<tr><td colspan="4">No provider metadata</td></tr>'}</table>
 <p>{narrative}</p>

@@ -6,3 +6,5 @@ artifacts/
 research_logs/*.json
 .cache/
 .streamlit/
+.pytest_cache/
+pytest-cache-files-*/

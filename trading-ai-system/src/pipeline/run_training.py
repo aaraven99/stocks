@@ -25,7 +25,7 @@ def _now():
 
 
 def _load_training_frame(db):
- rows=db.rows("SELECT f.values_json,l.positive FROM features f JOIN labels l ON l.ticker=f.ticker AND l.asof_date=f.date WHERE l.horizon_days=5 ORDER BY f.date,f.ticker")
+ rows=db.rows("SELECT f.date,f.ticker,f.values_json,l.positive FROM features f JOIN labels l ON l.ticker=f.ticker AND l.asof_date=f.date WHERE l.horizon_days=5 AND f.source_refs LIKE '%backfill%' AND ABS(l.realized_return)<=0.50 ORDER BY f.date,f.ticker")
  parsed=[json.loads(r['values_json']) for r in rows]
  if not parsed:return rows,[],np.empty((0,0)),np.empty((0,))
  names=sorted(set.intersection(*(set(x) for x in parsed)))[:80]
@@ -34,11 +34,11 @@ def _load_training_frame(db):
  return rows,names,X,y
 
 
-def _score_candidate(params,X,y):
+def _score_candidate(params,X,y,dates):
  estimator=build_estimator(params)
  if estimator is None:return None
  folds=[]
- for train,test in purged_splits(len(X),embargo=5):
+ for train,test in purged_splits(len(X),embargo=5,dates=dates):
   if len(set(y[train]))<2 or len(set(y[test]))<2:continue
   model=build_estimator(params)
   if model is None:continue
@@ -49,12 +49,24 @@ def _score_candidate(params,X,y):
  return {'params':params,'folds':folds,'brier':float(np.mean([x['brier'] for x in folds])),'logloss':float(np.mean([x['logloss'] for x in folds]))}
 
 
-def _calibrated_model(params,X,y):
+def _calibrated_models(params,X,y,dates):
  base=build_estimator(params)
- if base is None:return None
- method='isotonic' if params['family'] in ('random_forest','xgboost') and len(X)>=120 else 'sigmoid'
- cv=3 if min(np.bincount(y))>=3 else 2
- return CalibratedClassifierCV(base,method=method,cv=cv).fit(X,y)
+ if base is None:return []
+ folds=[(train,test) for train,test in purged_splits(len(X),embargo=5,dates=dates) if len(set(y[train]))==2 and len(set(y[test]))==2]
+ if not folds:return []
+ methods=['sigmoid','isotonic'] if len(X)>=120 else ['sigmoid'];models=[]
+ for method in methods:
+  try:models.append(CalibratedClassifierCV(build_estimator(params),method=method,cv=folds).fit(X,y))
+  except ValueError:continue
+ return models
+
+
+def _oof_probabilities(params,X,y,dates):
+ truth=[];probabilities=[]
+ for train,test in purged_splits(len(X),embargo=5,dates=dates):
+  if len(set(y[train]))<2 or len(set(y[test]))<2:continue
+  model=build_estimator(params);model.fit(X[train],y[train]);truth.extend(y[test].tolist());probabilities.extend(np.clip(model.predict_proba(X[test])[:,1],1e-5,1-1e-5).tolist())
+ return np.asarray(truth),np.asarray(probabilities)
 
 
 def main():
@@ -67,7 +79,7 @@ def main():
   print('training deferred: insufficient matured labels')
   return 0
 
- scored=[x for x in (_score_candidate(params,X,y) for params in candidate_grid()) if x]
+ dates=[row['date'] for row in rows];scored=[x for x in (_score_candidate(params,X,y,dates) for params in candidate_grid()) if x]
  if not scored:
   metrics={'reason':'no_candidate_passed_purged_cv','rows':len(rows)}
   db.upsert('training_runs',{'run_id':run_id,'started_at':None,'finished_at':_now(),'rows_used':len(rows),'cv_metrics_json':metrics,'model_id':None,'status':'failed'},['run_id'])
@@ -76,14 +88,14 @@ def main():
 
  scored=sorted(scored,key=lambda x:(x['brier'],x['logloss']))
  winners=scored[:min(3,len(scored))]
- models=[m for m in (_calibrated_model(item['params'],X,y) for item in winners) if m is not None]
+ models=[model for item in winners for model in _calibrated_models(item['params'],X,y,dates)]
  if not models:
   metrics={'reason':'calibration_failed','candidate_count':len(scored)}
   db.upsert('training_runs',{'run_id':run_id,'started_at':None,'finished_at':_now(),'rows_used':len(rows),'cv_metrics_json':metrics,'model_id':None,'status':'failed'},['run_id'])
   print('training failed: calibration failed')
   return 2
 
- probabilities=np.clip(shrink_probabilities(np.mean([m.predict_proba(X)[:,1] for m in models],axis=0).tolist()),1e-5,1-1e-5)
+ probabilities=np.clip(shrink_probabilities(np.mean([m.predict_proba(X)[:,1] for m in models],axis=0).tolist()),1e-5,1-1e-5);oof_truth,oof_probability=_oof_probabilities(winners[0]['params'],X,y,dates)
  importance=np.zeros(len(names))
  for model in models:
   calibrated=getattr(model,'calibrated_classifiers_',[])
@@ -92,8 +104,8 @@ def main():
   elif hasattr(estimator,'feature_importances_'):importance+=np.asarray(estimator.feature_importances_)
  if not importance.any():importance=np.ones(len(names))
  importance=importance/max(float(importance.sum()),1e-9)
- conformal=conformal_interval(y,probabilities)
- metrics={'validation':'purged_walk_forward_embargo','candidate_scores':scored[:10],'selected_candidates':winners,'brier':brier(y,probabilities),'logloss':float(log_loss(y,probabilities,labels=[0,1])),'calibration':calibration_curve(y,probabilities),'calibrators':['sigmoid_or_isotonic_by_candidate'],'uncertainty':{'conformal':conformal},'explainability':'shap_when_available_else_model_importance'}
+ conformal=conformal_interval(oof_truth,oof_probability)
+ metrics={'validation':'date_grouped_purged_walk_forward_5_business_day_embargo','candidate_scores':scored[:10],'selected_candidates':winners,'brier':float(np.mean([item['brier'] for item in winners])),'logloss':float(np.mean([item['logloss'] for item in winners])),'full_fit_brier_diagnostic':brier(y,probabilities),'calibration':calibration_curve(oof_truth,oof_probability),'calibrators':['sigmoid_platt','isotonic'] if len(X)>=120 else ['sigmoid_platt'],'uncertainty':{'conformal':conformal,'source':'out_of_fold'},'explainability':'shap_when_available_else_model_importance','training_rows':len(rows)}
 
  model_id='challenger_'+run_id
  artifacts=ensure_artifacts();path=artifacts/(model_id+'.joblib')

@@ -31,3 +31,12 @@ models:
   feature_version: v1
   embargo_days: 5
   calibration_bins: 10
+backtest:
+  model_family: xgboost
+  probability_floor: 0.78
+  embargo_dates: 5
+  min_train: 60
+  max_trades_per_date: 2
+  cost_bps: 30.0
+  min_win_rate: 0.65
+  max_days_per_trade: 2.0

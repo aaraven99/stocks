@@ -4,6 +4,10 @@ import numpy as np
 from core.constants import ARTIFACTS
 from models.uncertainty import ensemble_uncertainty,confidence,apply_conformal
 from models.explainability import explain
+from models.stacking import stack
+from models.bayesian_model_averaging import average
+from models.feature_selection import select
+from models.interpretability_guard import assess
 _CACHE=None
 def _bundle():
  global _CACHE
@@ -31,6 +35,6 @@ def predict(features):
  if not probs:
   z=.8*features.get('momentum_20d',0)+.6*features.get('trend_sma50_gap',0)-.7*features.get('volatility_20d',.2)+.2*features.get('news_sentiment',0)
   probs=[float(1/(1+np.exp(-z)))];attributions=explain(features)
- p=float(np.mean(probs));u=ensemble_uncertainty(probs) if len(probs)>1 else .18
+ stacked=stack(probs);p=float(average([{'probability':value,'weight':1.0} for value in probs])) if probs else float(stacked);u=ensemble_uncertainty(probs) if len(probs)>1 else .18;guard=assess(attributions)
  interval=apply_conformal(p,bundle.get('conformal',{})) if bundle else {'lower':max(0,p-u),'upper':min(1,p+u),'qhat':u,'alpha':None}
- return {'model_id':model_id,'probability':p,'expected_return':float(features.get('momentum_20d',0)*.35+features.get('trend_sma50_gap',0)*.2),'expected_drawdown':-abs(float(features.get('volatility_20d',.2)))*.08,'target_before_stop':float(max(0,min(1,p*(1-features.get('event_risk',0)*.2)))),'uncertainty':u,'confidence':confidence(p,u),'conformal_interval':interval,'explanation':sorted(attributions,key=lambda x:abs(x['attribution']),reverse=True)[:10]}
+ return {'model_id':model_id,'probability':p,'expected_return':float(features.get('momentum_20d',0)*.35+features.get('trend_sma50_gap',0)*.2),'expected_drawdown':-abs(float(features.get('volatility_20d',.2)))*.08,'target_before_stop':float(max(0,min(1,p*(1-features.get('event_risk',0)*.2)))),'uncertainty':u,'confidence':confidence(p,u) if guard['passed'] else 0.0,'conformal_interval':interval,'explanation':sorted(attributions,key=lambda x:abs(x['attribution']),reverse=True)[:10],'interpretability_guard':guard,'selected_features':select(features)}

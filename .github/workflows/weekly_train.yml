@@ -1,11 +1,17 @@
-name: Weekly Training and Research Review
+name: Weekly Model Training
 on:
   schedule:
     - cron: '0 2 * * 6'
   workflow_dispatch:
 jobs:
-  train:
+  training:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      LOKY_MAX_CPU_COUNT: '2'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -13,10 +19,18 @@ jobs:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: trading-ai-system/requirements.txt
+      - uses: actions/cache/restore@v5
+        with:
+          path: |
+            trading-ai-system/artifacts
+            trading-ai-system/research_logs
+          key: quant-state-${{ github.run_id }}
+          restore-keys: quant-state-
       - run: pip install -r trading-ai-system/requirements.txt
-      - name: Train and validate
+      - name: Test, backfill, train, backtest, and validate
         working-directory: trading-ai-system
         run: |
+          python -m compileall -q src dashboard
           python -m unittest discover -s tests -v
           python src/pipeline/run_backfill.py --max-tickers 20 --period 5y --step 1 --max-samples 250 --skip-mc
           python src/pipeline/run_training.py
@@ -29,8 +43,18 @@ jobs:
           test -s artifacts/model_registry_snapshot.json
           test -s artifacts/backtest_report.md
           test -s artifacts/monthly_research_review.md
+      - uses: actions/cache/save@v5
+        if: always()
+        with:
+          path: |
+            trading-ai-system/artifacts
+            trading-ai-system/research_logs
+          key: quant-state-${{ github.run_id }}
       - uses: actions/upload-artifact@v5
         if: always()
         with:
-          name: weekly-models-and-review-${{ github.run_id }}
-          path: trading-ai-system/artifacts/
+          name: weekly-model-artifacts-${{ github.run_id }}
+          path: |
+            trading-ai-system/artifacts/
+            trading-ai-system/research_logs/
+          if-no-files-found: error

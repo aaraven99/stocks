@@ -6,12 +6,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
-        with: {python-version: '3.11', cache: pip, cache-dependency-path: trading-ai-system/requirements.txt}
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: trading-ai-system/requirements.txt
       - run: pip install -r trading-ai-system/requirements.txt
       - working-directory: trading-ai-system
-        env: {TEST_MODE: '1'}
+        env:
+          TEST_MODE: '1'
         run: |
-          python -m unittest discover -s tests -v
+          python -m compileall -q dashboard src
           python src/pipeline/run_daily.py --test-mode
           test -f artifacts/test_mode/trading_system_test.sqlite
-          timeout 8 streamlit run dashboard/app.py --server.headless true || test $? -eq 124
+          timeout 8 streamlit run dashboard/app.py --server.headless true --server.port 8501 || test $? -eq 124
