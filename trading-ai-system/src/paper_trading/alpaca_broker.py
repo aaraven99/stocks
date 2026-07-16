@@ -4,6 +4,7 @@ from datetime import datetime,timezone
 import requests
 class AlpacaPaperBroker:
  base_url='https://paper-api.alpaca.markets'
+ data_base_url='https://data.alpaca.markets'
  def __init__(self,db,timeout=20):
   self.db=db;self.key=os.getenv('ALPACA_API_KEY');self.secret=os.getenv('ALPACA_SECRET_KEY');self.timeout=timeout
   self.enabled=bool(self.key and self.secret and os.getenv('ALPACA_PAPER_TRADE','true').lower()=='true')
@@ -13,6 +14,11 @@ class AlpacaPaperBroker:
   response=requests.request(method,self.base_url+path,headers=self._headers(),timeout=self.timeout,**kwargs)
   if response.status_code>=400:raise RuntimeError(f'Alpaca {method} {path}: {response.status_code} {response.text[:500]}')
   return response.json() if response.content else {}
+ def latest_trade_price(self,ticker):
+  if not self.enabled:return None
+  response=requests.get(self.data_base_url+f'/v2/stocks/{ticker}/trades/latest',headers=self._headers(),params={'feed':os.getenv('ALPACA_DATA_FEED','iex')},timeout=self.timeout)
+  if response.status_code>=400:raise RuntimeError(f'Alpaca GET latest trade {ticker}: {response.status_code} {response.text[:500]}')
+  return float(response.json()['trade']['p'])
  def account(self):
   if not self.enabled:return None
   account=self._request('GET','/v2/account');self.db.upsert('broker_account_snapshots',{'date':datetime.now(timezone.utc).date().isoformat(),'equity':float(account['equity']),'cash':float(account['cash']),'buying_power':float(account['buying_power']),'details_json':account},['date']);return account

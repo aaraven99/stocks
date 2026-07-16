@@ -17,7 +17,9 @@ class AlpacaPaperLifecycleTests(unittest.TestCase):
         db=Database(Path.cwd()/'artifacts'/'test_dbs'/'alpaca_integration.sqlite')
         broker=AlpacaPaperBroker(db)
         self.assertTrue(broker.reconcile('integration')['enabled'])
-        plan={'ticker':'SPY','action':'LONG','shares':1,'entry':100.0,'stop':90.0,'target':120.0}
+        market_price=broker.latest_trade_price('SPY')
+        self.assertGreater(market_price,0)
+        plan={'ticker':'SPY','action':'LONG','shares':1,'entry':market_price,'stop':round(market_price*.90,2),'target':round(market_price*1.10,2)}
         submitted=broker.submit_long_bracket('integration',plan)
         self.assertTrue(submitted['submitted'])
         broker.reconcile('integration')
