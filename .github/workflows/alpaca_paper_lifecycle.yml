@@ -3,7 +3,6 @@ on:
   workflow_dispatch:
 jobs:
   lifecycle:
-    if: ${{ secrets.ALPACA_API_KEY != '' && secrets.ALPACA_SECRET_KEY != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -13,6 +12,13 @@ jobs:
       RUN_ALPACA_INTEGRATION: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Verify Alpaca credentials
+        shell: bash
+        run: |
+          if [ -z "$ALPACA_API_KEY" ] || [ -z "$ALPACA_SECRET_KEY" ]; then
+            echo "ALPACA_API_KEY and ALPACA_SECRET_KEY must be configured in GitHub Actions secrets."
+            exit 1
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
