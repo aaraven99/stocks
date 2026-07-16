@@ -1,5 +1,5 @@
 """Opt-in live paper-account lifecycle coverage; never runs in ordinary CI."""
-import os,sys,unittest
+import os,sys,unittest,uuid
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
 from storage.db import Database
@@ -16,13 +16,14 @@ class AlpacaPaperLifecycleTests(unittest.TestCase):
     def test_reconcile_submit_persist_cancel(self):
         db=Database(Path.cwd()/'artifacts'/'test_dbs'/'alpaca_integration.sqlite')
         broker=AlpacaPaperBroker(db)
-        self.assertTrue(broker.reconcile('integration')['enabled'])
+        run_date='integration-'+uuid.uuid4().hex
+        self.assertTrue(broker.reconcile(run_date)['enabled'])
         market_price=broker.latest_trade_price('SPY')
         self.assertGreater(market_price,0)
         plan={'ticker':'SPY','action':'LONG','shares':1,'entry':market_price,'stop':round(market_price*.90,2),'target':round(market_price*1.10,2)}
-        submitted=broker.submit_long_bracket('integration',plan)
+        submitted=broker.submit_long_bracket(run_date,plan)
         self.assertTrue(submitted['submitted'])
-        broker.reconcile('integration')
+        broker.reconcile(run_date)
         row=db.rows('SELECT * FROM broker_orders WHERE client_order_id=?',(submitted['client_order_id'],))[0]
         self.assertIn(row['status'],{'new','accepted','pending_new','partially_filled','filled','done_for_day','canceled','replaced'})
         if row['broker_order_id'] and row['status'] not in {'filled','canceled','replaced'}:
