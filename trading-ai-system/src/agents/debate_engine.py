@@ -1,8 +1,0 @@
-class DebateEngine:
- def __init__(self,db,agents):self.db=db;self.agents=agents
- def run(self,date,context):
-  rounds=['thesis','rebuttal','cross_exam','red_team_attack','adversarial_stress_verdict','risk_committee_veto','final_verdict']; transcript=[]
-  for n,label in enumerate(rounds,1):
-   for a in self.agents:
-    x=a.dispatch(dict(context,round=label)); x['round']=label; x.setdefault('confidence',float(x.get('score',.5))); x.setdefault('evidence',[{'source':'quantitative_context','detail':x.get('reasoning','')}]); x['schema_version']='agent_assessment_v2'; transcript.append(x);self.db.upsert('debate_rounds',{'date':date,'round_no':n,'agent':a.name,'stance':x['stance'],'content':x['reasoning'],'score':x['score']},['date','round_no','agent']);self.db.upsert('agent_outputs',{'date':date,'agent':a.name,'payload_json':x},['date','agent'])
-  bull=[x['score'] for x in transcript if x['stance']=='bull'];bear=[x['score'] for x in transcript if x['stance']=='bear'];neutral=[x['score'] for x in transcript if x['stance']=='neutral']; verdict={'bull_score':sum(bull),'bear_score':sum(bear),'neutral_score':sum(neutral),'rounds':len(rounds),'agent_count':len(self.agents),'evidence_count':sum(len(x.get('evidence',[])) for x in transcript)}; bull_mean=sum(bull)/max(1,len(bull));bear_mean=sum(bear)/max(1,len(bear)); veto=bool(context.get('risk',.5)>.55 or context.get('kill_switch_active',False) or context.get('drift_flag')=='material'); verdict['risk_committee_veto']=veto; verdict['action']='CASH' if veto or bear_mean>bull_mean+.12 else 'WATCHLIST_LONGS';self.db.upsert('agents_transcripts',{'date':date,'transcript_json':transcript,'verdict_json':verdict},['date']);return verdict,transcript
