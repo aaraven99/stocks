@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from datetime import date
 
+import pandas as pd
 import pytest
 
-from swing_research.universe import Sp500HistoricalConstituentSource, require_price_coverage
+from swing_research.universe import (
+    Sp500HistoricalConstituentSource,
+    audit_price_coverage,
+    require_price_coverage,
+)
 
 
 def _interval_csv() -> str:
@@ -29,3 +34,18 @@ def test_coverage_gate_rejects_missing_historical_prices() -> None:
     snapshot = source.snapshot(source.parse_intervals(_interval_csv()), date(2004, 1, 1))
     with pytest.raises(ValueError, match="below the 98% research gate"):
         require_price_coverage(snapshot, {"T1", "T2", "BRK-B"})
+
+
+class _PartialProvider:
+    def fetch_daily(self, ticker: str, start: object, end: object) -> pd.DataFrame:
+        if ticker == "OLD":
+            raise RuntimeError("delisted price unavailable")
+        return pd.DataFrame({"close": [100.0]})
+
+
+def test_coverage_audit_records_provider_gaps() -> None:
+    source = Sp500HistoricalConstituentSource()
+    snapshot = source.snapshot(source.parse_intervals(_interval_csv()), date(2004, 1, 1))
+    audit = audit_price_coverage(snapshot, _PartialProvider())
+    assert audit.coverage < 1
+    assert audit.unavailable_tickers == ("OLD",)

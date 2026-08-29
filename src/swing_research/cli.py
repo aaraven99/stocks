@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -24,6 +24,7 @@ from .relative_strength_research import (
 )
 from .reporting import write_equity_curve_svg, write_report
 from .storage import PaperLedger
+from .universe import Sp500HistoricalConstituentSource, audit_price_coverage, require_price_coverage
 
 
 def _root() -> Path:
@@ -168,6 +169,42 @@ def _command_robust_portfolio_study(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_universe_audit(args: argparse.Namespace) -> int:
+    root = _root()
+    document = load_yaml(root / args.config)
+    historical = document["historical_universe"]
+    source = Sp500HistoricalConstituentSource()
+    snapshot = source.snapshot(
+        source.fetch_intervals(),
+        date.fromisoformat(args.as_of),
+        minimum_price_coverage=float(historical["price_coverage_gate"]),
+    )
+    audit = audit_price_coverage(
+        snapshot, YFinancePriceProvider(), lookback_days=args.lookback_days
+    )
+    output = root / args.output
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(
+            {
+                "as_of": snapshot.as_of.isoformat(),
+                "source": snapshot.source.model_dump(mode="json"),
+                "price_coverage_gate": snapshot.minimum_price_coverage,
+                "coverage": audit.coverage,
+                "covered_tickers": audit.covered_tickers,
+                "unavailable_tickers": audit.unavailable_tickers,
+                "checked_at": audit.checked_at.isoformat(),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"Wrote universe coverage audit: {output}")
+    print(f"Coverage: {audit.coverage:.1%} ({len(audit.covered_tickers)}/{len(snapshot.tickers)})")
+    require_price_coverage(snapshot, set(audit.covered_tickers))
+    return 0
+
+
 def _command_workflow_gate(_: argparse.Namespace) -> int:
     allowed = should_start_daily_workflow(datetime.now(UTC))
     print(f"run_daily={'true' if allowed else 'false'}")
@@ -211,6 +248,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", default="reports/backtests/robust-etf-relative-strength.json"
     )
     robust_study.set_defaults(handler=_command_robust_portfolio_study)
+    audit = commands.add_parser(
+        "universe-audit",
+        help="Audit free-provider coverage for a point-in-time S&P 500 constituent snapshot",
+    )
+    audit.add_argument("--as-of", required=True, help="Historical date in YYYY-MM-DD form")
+    audit.add_argument("--config", default="config/universe.yaml")
+    audit.add_argument("--lookback-days", type=int, default=14)
+    audit.add_argument("--output", default="reports/data/universe-coverage-audit.json")
+    audit.set_defaults(handler=_command_universe_audit)
     gate = commands.add_parser(
         "workflow-gate", help="Print whether a 5 AM Chicago NYSE run is allowed"
     )

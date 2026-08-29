@@ -46,7 +46,9 @@ hours and the Python gate runs only at 05:00 America/Chicago on NYSE sessions.
 ## Important limitations
 
 - The starter ticker list is not historical index membership; broad historical tests therefore
-  have survivorship bias until a point-in-time universe adapter is supplied.
+  have survivorship bias until a point-in-time universe adapter is supplied. The included
+  `universe-audit` command uses a pinned community constituent file and refuses a broad study
+  when free-price coverage is below its configured 98% gate.
 - Free data may be delayed, revised, incomplete, or licensed for limited use. Validate every
   provider before use.
 - Results from backtests and paper positions do not predict future performance.

@@ -15,3 +15,7 @@ not official S&P data; its upstream notes identify possible early-history gaps a
 Yahoo does not supply complete delisted-security price history. The adapter therefore requires at
 least 98% verified price coverage before a broad historical claim can proceed. It is not used by
 the ETF research results committed so far.
+
+Run `uv run swing-research universe-audit --as-of YYYY-MM-DD` before a historical stock-universe
+experiment. The command writes an artifact even if its coverage gate fails, preserving the exact
+unavailable tickers rather than silently dropping them.
