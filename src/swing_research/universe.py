@@ -136,6 +136,59 @@ def audit_price_coverage(
     )
 
 
+def historical_tickers(
+    intervals: pd.DataFrame, start: date, end: date, benchmark_tickers: tuple[str, ...] = ()
+) -> tuple[str, ...]:
+    """Return all constituent symbols active at any point in an inclusive research window."""
+    active = intervals[
+        (intervals["start_date"] <= end)
+        & (intervals["end_date"].isna() | (intervals["end_date"] >= start))
+    ]
+    return tuple(
+        sorted({yahoo_symbol(str(ticker)) for ticker in active["ticker"]}.union(benchmark_tickers))
+    )
+
+
+def point_in_time_membership(
+    intervals: pd.DataFrame, sessions: pd.DatetimeIndex, tickers: tuple[str, ...]
+) -> pd.DataFrame:
+    """Build a daily membership matrix without projecting a later constituent list backward."""
+    index = pd.DatetimeIndex(sessions).tz_localize(None).normalize()
+    membership = pd.DataFrame(False, index=index, columns=tickers)
+    known_tickers = set(tickers)
+    for row in intervals.itertuples(index=False):
+        ticker = yahoo_symbol(str(row.ticker))
+        if ticker not in known_tickers:
+            continue
+        start = pd.Timestamp(str(row.start_date))
+        end = pd.Timestamp(str(row.end_date)) if pd.notna(row.end_date) else None
+        active = index >= start
+        if end is not None:
+            active &= index <= end
+        membership.loc[active, ticker] = True
+    return membership
+
+
+def require_membership_price_coverage(
+    membership: pd.DataFrame, close_prices: pd.DataFrame, minimum_coverage: float = 0.98
+) -> None:
+    """Reject a study when active historical members lack material price history."""
+    if not 0 < minimum_coverage <= 1:
+        raise ValueError("minimum_coverage must be in (0, 1]")
+    aligned = close_prices.reindex(index=membership.index, columns=membership.columns)
+    required = membership.to_numpy(dtype=bool)
+    required_count = int(required.sum())
+    if required_count == 0:
+        raise ValueError("Membership matrix has no active securities")
+    available = aligned.notna().to_numpy(dtype=bool)
+    coverage = float((required & available).sum() / required_count)
+    if coverage < minimum_coverage:
+        raise ValueError(
+            f"Membership price coverage {coverage:.1%} is below the "
+            f"{minimum_coverage:.0%} research gate"
+        )
+
+
 def require_price_coverage(requested: UniverseSnapshot, returned_tickers: set[str]) -> None:
     """Reject claims when the price provider lacks a material part of a historical universe."""
     covered = len(set(requested.tickers).intersection(returned_tickers))

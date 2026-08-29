@@ -1,0 +1,25 @@
+research:
+  name: point_in_time_sp500_cross_sectional_momentum_v1
+  # Supply this from a licensed provider; it is intentionally not committed to Git.
+  constituent_intervals_file: data/licensed_ohlcv/constituent_intervals.csv
+  minimum_membership_price_coverage: 0.98
+  data_start: "2006-01-03"
+  robustness_development_periods:
+    - { name: "2007-2010", start: "2007-01-03", end: "2010-12-31" }
+    - { name: "2011-2014", start: "2011-01-03", end: "2014-12-31" }
+    - { name: "2015-2018", start: "2015-01-03", end: "2018-12-31" }
+    - { name: "2019-2020", start: "2019-01-03", end: "2020-12-31" }
+  robustness_validation_start: "2021-01-01"
+  robustness_validation_end: "2023-12-29"
+  final_holdout_start: "2024-01-02"
+  final_holdout_end: "2026-08-27"
+  parameter_grid:
+    momentum_lookback_sessions: [63, 126, 189]
+    trend_lookback_sessions: [126, 200]
+    volatility_lookback_sessions: [63]
+    rebalance_sessions: [5, 20]
+    top_n: [10, 20]
+  costs:
+    commission_bps: 0.0
+    half_spread_bps: 2.0
+    slippage_bps: 5.0

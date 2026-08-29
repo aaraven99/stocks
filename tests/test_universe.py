@@ -8,6 +8,9 @@ import pytest
 from swing_research.universe import (
     Sp500HistoricalConstituentSource,
     audit_price_coverage,
+    historical_tickers,
+    point_in_time_membership,
+    require_membership_price_coverage,
     require_price_coverage,
 )
 
@@ -49,3 +52,23 @@ def test_coverage_audit_records_provider_gaps() -> None:
     audit = audit_price_coverage(snapshot, _PartialProvider())
     assert audit.coverage < 1
     assert audit.unavailable_tickers == ("OLD",)
+
+
+def test_point_in_time_membership_does_not_project_later_members_backwards() -> None:
+    intervals = Sp500HistoricalConstituentSource.parse_intervals(
+        "ticker,start_date,end_date\nAAA,2020-01-01,2020-01-03\nBBB,2020-01-06,\n"
+    )
+    sessions = pd.DatetimeIndex(["2020-01-02", "2020-01-03", "2020-01-06"])
+    membership = point_in_time_membership(intervals, sessions, ("AAA", "BBB"))
+    assert membership.loc[pd.Timestamp("2020-01-02"), "AAA"]
+    assert not membership.loc[pd.Timestamp("2020-01-02"), "BBB"]
+    assert membership.loc[pd.Timestamp("2020-01-06"), "BBB"]
+    assert historical_tickers(intervals, date(2020, 1, 1), date(2020, 1, 6)) == ("AAA", "BBB")
+
+
+def test_membership_price_coverage_rejects_missing_active_history() -> None:
+    index = pd.DatetimeIndex(["2020-01-02", "2020-01-03"])
+    membership = pd.DataFrame({"AAA": [True, True], "BBB": [True, True]}, index=index)
+    prices = pd.DataFrame({"AAA": [10.0, 11.0], "BBB": [float("nan"), 12.0]}, index=index)
+    with pytest.raises(ValueError, match="below the 98% research gate"):
+        require_membership_price_coverage(membership, prices)

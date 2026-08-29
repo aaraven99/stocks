@@ -26,3 +26,7 @@ contain `date`, `open`, `high`, `low`, `close`, and `volume`; the adapter applie
 point-in-time validation and the universe audit still must clear its coverage gate. Norgate Data
 is a compatible Windows/Python candidate because its US Platinum/Diamond tiers advertise
 historical constituents and delisted securities, but no subscription is assumed or bundled.
+
+For the cross-sectional stock study, also provide `constituent_intervals.csv` in that directory
+with `ticker,start_date,end_date` columns. The study uses only each prior-close membership row,
+requires 98% aggregate active-member price coverage, and rejects missing prices for any holding.
