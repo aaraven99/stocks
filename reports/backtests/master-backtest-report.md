@@ -68,3 +68,8 @@ The point-in-time membership data itself is not sufficient. Yahoo no longer retu
 for many former tickers, mergers, and renamed companies. The audit artifact retains every missing
 symbol and the CLI exits non-zero. No historical stock-universe result may be generated from this
 provider until a delisting-aware price vendor passes the same coverage audit.
+
+The separate 2024-01-02 snapshot also failed: 480 of 503 members (95.4%) were available, still
+below the 98% gate. Its raw evidence is retained in
+`reports/backtests/universe-coverage-2024-01-02.json`; a short recent window does not justify
+silently accepting a lower coverage standard.

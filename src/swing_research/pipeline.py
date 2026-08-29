@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from .config import load_config
-from .data import PriceProvider, YFinancePriceProvider, validate_ohlcv
+from .data import PriceProvider, configured_price_provider, validate_ohlcv
 from .features import build_technical_features
 from .market_calendar import latest_completed_nyse_session
 from .regime import MarketRegime, detect_regime
@@ -61,7 +61,7 @@ def run_daily_research(
     expected_date = latest_completed_nyse_session(effective_now)
     expected_end = datetime.combine(expected_date, datetime.min.time(), tzinfo=UTC)
     start = expected_end - timedelta(days=500)
-    market_provider = provider or YFinancePriceProvider()
+    market_provider = provider or configured_price_provider()
     tickers = list(dict.fromkeys([benchmark_ticker, *universe["tickers"]]))
     frames: dict[str, pd.DataFrame] = {}
     for ticker in tickers:

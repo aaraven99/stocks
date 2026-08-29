@@ -19,3 +19,10 @@ the ETF research results committed so far.
 Run `uv run swing-research universe-audit --as-of YYYY-MM-DD` before a historical stock-universe
 experiment. The command writes an artifact even if its coverage gate fails, preserving the exact
 unavailable tickers rather than silently dropping them.
+
+For a licensed delisting-aware vendor, set `MARKET_DATA_PROVIDER=local_csv` and set
+`LOCAL_OHLCV_DIRECTORY` to a directory of vendor exports named `<ticker>.csv`. Each export must
+contain `date`, `open`, `high`, `low`, `close`, and `volume`; the adapter applies the same
+point-in-time validation and the universe audit still must clear its coverage gate. Norgate Data
+is a compatible Windows/Python candidate because its US Platinum/Diamond tiers advertise
+historical constituents and delisted securities, but no subscription is assumed or bundled.

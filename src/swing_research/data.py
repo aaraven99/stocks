@@ -100,6 +100,55 @@ class YFinancePriceProvider:
         return validate_ohlcv(raw, as_of=end)
 
 
+class LocalCsvPriceProvider:
+    """Validated daily OHLCV exports from a licensed point-in-time data vendor.
+
+    Each file is named ``<ticker>.csv`` and contains a ``date`` column plus OHLCV columns.
+    This intentionally accepts vendor exports rather than claiming that a free source has
+    delisting-aware history.
+    """
+
+    def __init__(self, directory: str | Path) -> None:
+        self.directory = Path(directory).expanduser().resolve()
+        if not self.directory.is_dir():
+            raise ValueError(f"LOCAL_OHLCV_DIRECTORY does not exist: {self.directory}")
+
+    def _path_for(self, ticker: str) -> Path:
+        path = (self.directory / f"{ticker}.csv").resolve()
+        if not path.is_relative_to(self.directory):
+            raise ValueError(f"Unsafe ticker filename: {ticker}")
+        return path
+
+    def fetch_daily(self, ticker: str, start: datetime, end: datetime) -> pd.DataFrame:
+        path = self._path_for(ticker)
+        if not path.is_file():
+            raise FileNotFoundError(f"No local OHLCV export for {ticker}: {path}")
+        raw = pd.read_csv(path)
+        date_columns = [column for column in raw.columns if str(column).lower() == "date"]
+        if len(date_columns) != 1:
+            raise DataValidationError(f"{path.name} must include exactly one date column")
+        date_column = date_columns[0]
+        raw.index = pd.to_datetime(raw.pop(date_column), errors="raise", utc=True)
+        normalized = validate_ohlcv(raw, as_of=end)
+        start_day = pd.Timestamp(start).tz_localize(None).normalize()
+        return normalized.loc[start_day:]
+
+
+def configured_price_provider() -> PriceProvider:
+    """Choose an explicit local export or the convenience yfinance adapter from environment."""
+    configured = os.getenv("MARKET_DATA_PROVIDER", "yfinance").strip().lower()
+    if configured == "yfinance":
+        return YFinancePriceProvider()
+    if configured == "local_csv":
+        directory = os.getenv("LOCAL_OHLCV_DIRECTORY")
+        if not directory:
+            raise ValueError(
+                "LOCAL_OHLCV_DIRECTORY is required when MARKET_DATA_PROVIDER=local_csv"
+            )
+        return LocalCsvPriceProvider(directory)
+    raise ValueError(f"Unsupported MARKET_DATA_PROVIDER: {configured}")
+
+
 class SecEdgarClient:
     """Official SEC issuer submissions client with a polite rate limit."""
 

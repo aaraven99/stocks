@@ -36,6 +36,10 @@ To enable optional narrative synthesis, create the ignored file
 set `agents.use_openrouter_narrative: true` in `config/agents.yaml`. The default pipeline works
 without it.
 
+For a licensed delisting-aware price export, set `MARKET_DATA_PROVIDER=local_csv` and
+`LOCAL_OHLCV_DIRECTORY` in that same `.env` file, then run `universe-audit` before any
+stock-universe study. The adapter expects one `<ticker>.csv` per symbol with date and OHLCV fields.
+
 ## Daily research flow
 
 `swing-research daily` loads only completed market data, rejects stale critical data, derives

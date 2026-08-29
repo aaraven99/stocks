@@ -14,3 +14,10 @@
 - **Storage:** local SQLite for forward predictions and paper trades. It provides durable,
   inspectable records without paid infrastructure.
 
+## 2026-08-29 — Historical equity research data gate
+
+- **Decision:** keep the 98% point-in-time price-coverage gate and reject both audited Yahoo
+  snapshots (86.3% in 2020 and 95.4% in 2024), rather than dropping unavailable former members.
+- **Path selected:** support local CSV exports from a licensed delisting-aware provider through
+  the existing provider boundary. A vendor integration is usable only after its own coverage audit
+  passes; purchasing or enrolling in a paid service remains a user decision.

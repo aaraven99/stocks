@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from .backtesting import CostModel, result_as_dict, run_long_only_backtest
 from .config import load_config, load_yaml
-from .data import YFinancePriceProvider
+from .data import configured_price_provider
 from .features import build_technical_features
 from .market_calendar import should_start_daily_workflow
 from .pipeline import run_daily_research, run_demo_research
@@ -60,7 +60,7 @@ def _command_demo(args: argparse.Namespace) -> int:
 def _command_backtest(args: argparse.Namespace) -> int:
     root = _root()
     configuration = load_config(root / args.config)
-    provider = YFinancePriceProvider()
+    provider = configured_price_provider()
     end = datetime.now(UTC)
     start = end - timedelta(days=args.years * 366)
     price = provider.fetch_daily(args.ticker, start, end)
@@ -89,7 +89,7 @@ def _command_portfolio_study(args: argparse.Namespace) -> int:
     root = _root()
     document = load_yaml(root / args.config)
     research = document["research"]
-    provider = YFinancePriceProvider()
+    provider = configured_price_provider()
     data_start = datetime.fromisoformat(str(research["data_start"]))
     data_end = datetime.fromisoformat(str(research["holdout_end"]))
     frames = {
@@ -129,7 +129,7 @@ def _command_robust_portfolio_study(args: argparse.Namespace) -> int:
     root = _root()
     document = load_yaml(root / args.config)
     research = document["research"]
-    provider = YFinancePriceProvider()
+    provider = configured_price_provider()
     data_start = datetime.fromisoformat(str(research["data_start"]))
     data_end = datetime.fromisoformat(str(research["final_holdout_end"]))
     frames = {
@@ -180,7 +180,7 @@ def _command_universe_audit(args: argparse.Namespace) -> int:
         minimum_price_coverage=float(historical["price_coverage_gate"]),
     )
     audit = audit_price_coverage(
-        snapshot, YFinancePriceProvider(), lookback_days=args.lookback_days
+        snapshot, configured_price_provider(), lookback_days=args.lookback_days
     )
     output = root / args.output
     output.parent.mkdir(parents=True, exist_ok=True)

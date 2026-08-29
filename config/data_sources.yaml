@@ -2,6 +2,8 @@ market_data:
   provider: yfinance
   adjusted_prices: true
   freshness_max_age_hours: 36
+  # A licensed vendor may be selected with MARKET_DATA_PROVIDER=local_csv and
+  # LOCAL_OHLCV_DIRECTORY. Each export must be <ticker>.csv with date and OHLCV fields.
 sec:
   enabled: true
   provider: sec_edgar
@@ -10,4 +12,3 @@ news:
   enabled: false
   provider: none
   freshness_max_age_hours: 24
-
