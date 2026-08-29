@@ -7,4 +7,9 @@ universe:
   # Small, liquid seed universe. Replace with a point-in-time constituent file for research.
   tickers: [AAPL, AMZN, AVGO, GOOGL, JPM, META, MSFT, NFLX, NVDA, SPY, TSLA]
 benchmarks: [SPY, QQQ]
-
+historical_universe:
+  provider: fja05680_sp500_intervals
+  source_commit: c31ac3cc56f28cf9a02b4e694eff7ceab596a0ff
+  source_license: MIT
+  price_coverage_gate: 0.98
+  status: community_data_requires_independent_validation

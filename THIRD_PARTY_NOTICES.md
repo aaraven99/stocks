@@ -13,7 +13,7 @@ from their own distributions and retain their licenses.
 | PyYAML | configuration parsing | MIT |
 | requests | HTTP provider adapters | Apache-2.0 |
 | yfinance | optional convenience market-data adapter | Apache-2.0 |
+| fja05680/sp500 historical intervals | optional point-in-time constituent research data | MIT |
 
 No GPL or AGPL repository code is incorporated. Users must independently review data-provider
 terms, exchange rules, and any models or libraries they add.
-
