@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,13 +13,12 @@ from .regime import MarketRegime
 from .schemas import Candidate
 
 
-def _format_candidate(position: int, candidate: Candidate) -> str:
+def _format_candidate(position: int, candidate: Candidate, narrative: str | None = None) -> str:
     assessments = deterministic_assessments(candidate)
     final = assessments[-1]
     values = candidate.feature_values
     citations = ", ".join(sorted({evidence.sources[0].url for evidence in final.evidence}))
-    return "\n".join(
-        [
+    sections = [
             f"### {position}. {candidate.ticker} — {final.classification}",
             f"Composite swing score: **{candidate.composite_score:.1f}/100**  ",
             f"Confidence: **{final.confidence:.0%}** "
@@ -38,14 +38,21 @@ def _format_candidate(position: int, candidate: Candidate) -> str:
             f"Source references: {citations}.",
             "",
             "Cautions: " + " ".join(f"{caution}" for caution in final.cautions),
-        ]
-    )
+    ]
+    if narrative:
+        sections.extend(["", "Optional OpenRouter narrative (non-decisioning): " + narrative])
+    return "\n".join(sections)
 
 
-def render_morning_report(candidates: list[Candidate], regime: MarketRegime) -> str:
+def render_morning_report(
+    candidates: list[Candidate],
+    regime: MarketRegime,
+    narratives: Mapping[str, str] | None = None,
+    narrative_status: str = "DISABLED by config",
+) -> str:
     timestamp = datetime.now(UTC).isoformat()
     candidates_section = "\n\n".join(
-        _format_candidate(position, candidate)
+        _format_candidate(position, candidate, (narratives or {}).get(candidate.ticker))
         for position, candidate in enumerate(candidates, start=1)
     )
     if not candidates_section:
@@ -67,6 +74,9 @@ def render_morning_report(candidates: list[Candidate], regime: MarketRegime) -> 
             "the pipeline fails on stale critical data.",
             "- SEC/news/fundamental data: excluded from the starter composite "
             "until a validated adapter is enabled.",
+            "- OpenRouter narrative: "
+            + narrative_status
+            + ". It cannot alter scores or execution.",
             "- Execution: research ranking only. No brokerage orders are connected.",
             "",
             "## Research disclaimer",

@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import os
+import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
 import requests
 
 from .schemas import AgentAssessment, Candidate, Evidence, SourceReference
+
+
+@dataclass(frozen=True)
+class NarrativeSynthesis:
+    narratives: dict[str, str]
+    status: str
 
 
 def deterministic_assessments(candidate: Candidate) -> list[AgentAssessment]:
@@ -188,3 +196,37 @@ class OpenRouterNarrativeClient:
             return str(payload["choices"][0]["message"]["content"])
         except (KeyError, IndexError, TypeError) as exc:
             raise RuntimeError("OpenRouter returned an unexpected response shape") from exc
+
+
+def synthesize_narratives(
+    candidates: list[Candidate], enabled: bool, model: str | None = None
+) -> NarrativeSynthesis:
+    """Optionally produce non-numeric prose; failures never affect the quantitative run."""
+    if not enabled:
+        return NarrativeSynthesis({}, "DISABLED by config")
+    try:
+        client = OpenRouterNarrativeClient(model=model)
+    except RuntimeError:
+        return NarrativeSynthesis({}, "UNAVAILABLE: OPENROUTER_API_KEY is not configured")
+    narratives: dict[str, str] = {}
+    rejected = 0
+    failed = 0
+    for candidate in candidates:
+        try:
+            summary = client.summarize(candidate, deterministic_assessments(candidate)).strip()
+        except (requests.RequestException, RuntimeError):
+            failed += 1
+            continue
+        if not summary or re.search(r"\d", summary):
+            rejected += 1
+            continue
+        narratives[candidate.ticker] = summary
+    if failed:
+        return NarrativeSynthesis(
+            narratives, f"PARTIAL: {failed} OpenRouter narrative request(s) failed"
+        )
+    if rejected:
+        return NarrativeSynthesis(
+            narratives, f"PARTIAL: {rejected} narrative(s) rejected for containing numbers"
+        )
+    return NarrativeSynthesis(narratives, f"ACTIVE via {client.model}; prose cannot alter scores")

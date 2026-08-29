@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from .agents import synthesize_narratives
 from .config import load_config
 from .data import PriceProvider, configured_price_provider, validate_ohlcv
 from .features import build_technical_features
@@ -71,7 +72,13 @@ def run_daily_research(
     candidates, regime = rank_from_frames(
         frames, benchmark_ticker, int(strategy["thresholds"]["top_candidates"])
     )
-    report = render_morning_report(candidates, regime)
+    agent_config = config["agents"]["agents"]
+    narrative = synthesize_narratives(
+        candidates,
+        enabled=bool(agent_config["use_openrouter_narrative"]),
+        model=str(agent_config["openrouter_model"]),
+    )
+    report = render_morning_report(candidates, regime, narrative.narratives, narrative.status)
     if ledger is not None:
         for candidate in candidates:
             ledger.record_prediction(
