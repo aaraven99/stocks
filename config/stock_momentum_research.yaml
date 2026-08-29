@@ -23,3 +23,4 @@ research:
     commission_bps: 0.0
     half_spread_bps: 2.0
     slippage_bps: 5.0
+  cost_stress_multipliers: [1.0, 2.0]

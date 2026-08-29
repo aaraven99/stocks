@@ -15,3 +15,7 @@ The stock cross-sectional engine consumes a membership matrix whose row for a si
 only the securities known to be constituents at that completed close. It ranks those members, then
 executes at the following regular-session open. Missing prices for a held security are fatal; the
 engine does not silently forward-fill a delisting, rename, or provider gap.
+
+After development-period selection, the same stock specification is evaluated with baseline and
+doubled transaction costs on validation and final holdout. Cost stress never reselects a parameter
+or uses later-period results to alter the selected model.

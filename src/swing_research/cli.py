@@ -295,6 +295,7 @@ def _command_stock_robust_study(args: argparse.Namespace) -> int:
             data_end,
         ),
         CostModel(**research["costs"]),
+        tuple(float(value) for value in research.get("cost_stress_multipliers", [1.0, 2.0])),
     )
     output = root / args.output
     output.parent.mkdir(parents=True, exist_ok=True)

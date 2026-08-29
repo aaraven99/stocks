@@ -29,6 +29,7 @@ class StockRobustExperiment:
     selected: StockRobustSpecScore
     validation: dict[str, Any]
     final_holdout: dict[str, Any]
+    cost_stress: dict[str, dict[str, Any]]
 
 
 def generate_stock_specs(research: dict[str, Any]) -> list[CrossSectionalMomentumSpec]:
@@ -96,6 +97,7 @@ def run_robust_stock_experiment(
     validation: ResearchPeriod,
     final_holdout: ResearchPeriod,
     costs: CostModel,
+    cost_stress_multipliers: tuple[float, ...] = (1.0, 2.0),
 ) -> StockRobustExperiment:
     """Select once on development data and leave validation/final stock periods untouched."""
     selected = select_stock_spec_across_development_periods(
@@ -107,10 +109,41 @@ def run_robust_stock_experiment(
     final_result = run_point_in_time_cross_sectional_momentum(
         frames, membership, selected.spec, final_holdout.start, final_holdout.end, costs
     )
+    cost_stress: dict[str, dict[str, Any]] = {}
+    for multiplier in cost_stress_multipliers:
+        if multiplier <= 0:
+            raise ValueError("cost stress multipliers must be positive")
+        stressed_costs = CostModel(
+            commission_bps=costs.commission_bps * multiplier,
+            half_spread_bps=costs.half_spread_bps * multiplier,
+            slippage_bps=costs.slippage_bps * multiplier,
+        )
+        stressed_validation = run_point_in_time_cross_sectional_momentum(
+            frames, membership, selected.spec, validation.start, validation.end, stressed_costs
+        )
+        stressed_final = run_point_in_time_cross_sectional_momentum(
+            frames,
+            membership,
+            selected.spec,
+            final_holdout.start,
+            final_holdout.end,
+            stressed_costs,
+        )
+        cost_stress[f"{multiplier:g}x"] = {
+            "validation": {
+                "metrics": stressed_validation.metrics,
+                "benchmarks": stressed_validation.benchmark_metrics,
+            },
+            "final_holdout": {
+                "metrics": stressed_final.metrics,
+                "benchmarks": stressed_final.benchmark_metrics,
+            },
+        }
     return StockRobustExperiment(
         selected,
         {"metrics": validation_result.metrics, "benchmarks": validation_result.benchmark_metrics},
         {"metrics": final_result.metrics, "benchmarks": final_result.benchmark_metrics},
+        cost_stress,
     )
 
 
@@ -124,4 +157,5 @@ def stock_experiment_as_dict(experiment: StockRobustExperiment) -> dict[str, Any
         },
         "validation": experiment.validation,
         "final_holdout": experiment.final_holdout,
+        "cost_stress": experiment.cost_stress,
     }
