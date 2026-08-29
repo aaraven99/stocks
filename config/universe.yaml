@@ -1,0 +1,10 @@
+universe:
+  name: liquid_us_equity_starter
+  exchange_allowlist: [NYSE, NASDAQ, AMEX]
+  minimum_price_usd: 5.0
+  minimum_average_dollar_volume_usd: 10000000
+  exclude_otc: true
+  # Small, liquid seed universe. Replace with a point-in-time constituent file for research.
+  tickers: [AAPL, AMZN, AVGO, GOOGL, JPM, META, MSFT, NFLX, NVDA, SPY, TSLA]
+benchmarks: [SPY, QQQ]
+

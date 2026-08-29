@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+*.egg-info/
+data/cache/
+data/processed/
+reports/daily/*.md
+reports/experiments/*.json
+models/registry/*.joblib
+*.sqlite3
+

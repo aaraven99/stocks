@@ -1,0 +1,13 @@
+market_data:
+  provider: yfinance
+  adjusted_prices: true
+  freshness_max_age_hours: 36
+sec:
+  enabled: true
+  provider: sec_edgar
+  rate_limit_per_second: 8
+news:
+  enabled: false
+  provider: none
+  freshness_max_age_hours: 24
+

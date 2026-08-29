@@ -1,0 +1,22 @@
+strategy:
+  name: momentum_pullback_v1
+  decision_time: market_close
+  earliest_execution: next_regular_session_open
+  holding_period_sessions: 10
+  minimum_history_sessions: 60
+  technical_weights:
+    momentum_20d: 0.28
+    relative_strength_20d: 0.22
+    trend: 0.20
+    rsi: 0.12
+    volume_confirmation: 0.10
+    pullback_quality: 0.08
+  thresholds:
+    entry_score: 65
+    exit_score: 45
+    top_candidates: 10
+costs:
+  commission_bps: 0.0
+  half_spread_bps: 2.0
+  slippage_bps: 5.0
+

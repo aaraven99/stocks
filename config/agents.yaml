@@ -1,0 +1,6 @@
+agents:
+  use_openrouter_narrative: false
+  openrouter_model: openrouter/free
+  final_decision_can_override_quantitative_rank: false
+  required_source_types: [market_data, strategy_config, risk_config]
+
