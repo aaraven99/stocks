@@ -71,3 +71,11 @@ family was already inconsistent before untouched periods.
 
 The larger ETF opportunity set did not improve the evidence. No additional variants of this
 family will be selected from these validation or final-period outcomes.
+
+## Predeclared next experiment — trend-pullback ETF rotation
+
+`config/trend_pullback_etf_research.yaml` is frozen before execution. It uses the same diversified
+ETF universe but changes the hypothesis: an asset must have positive 126/189-session momentum and
+positive 200-session trend, then it is ranked by the size of a negative 5/10-session pullback
+scaled by recent volatility. Its 16 combinations are selected only by the four pre-2021
+development periods; validation and final-period outputs will be recorded without further changes.

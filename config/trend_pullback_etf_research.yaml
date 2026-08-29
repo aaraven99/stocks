@@ -1,0 +1,29 @@
+research:
+  name: trend_pullback_etf_rotation_v1
+  # Independent swing hypothesis: established positive trends with a recent short-term pullback.
+  instruments: [SPY, QQQ, IWM, DIA, MDY, VTI, XLB, XLE, XLF, XLI, XLK, XLP, XLV, XLY, XLU, IYR, VNQ, EEM, EFA, TLT, GLD, SHY]
+  risk_assets: [SPY, QQQ, IWM, DIA, MDY, VTI, XLB, XLE, XLF, XLI, XLK, XLP, XLV, XLY, XLU, IYR, VNQ, EEM, EFA]
+  defensive_asset: SHY
+  defensive_assets: [SHY, TLT, GLD]
+  data_start: "2006-01-03"
+  robustness_development_periods:
+    - { name: "2007-2010", start: "2007-01-03", end: "2010-12-31" }
+    - { name: "2011-2014", start: "2011-01-03", end: "2014-12-31" }
+    - { name: "2015-2018", start: "2015-01-03", end: "2018-12-31" }
+    - { name: "2019-2020", start: "2019-01-03", end: "2020-12-31" }
+  robustness_validation_start: "2021-01-01"
+  robustness_validation_end: "2023-12-29"
+  final_holdout_start: "2024-01-02"
+  final_holdout_end: "2026-08-27"
+  parameter_grid:
+    momentum_lookback_sessions: [126, 189]
+    trend_lookback_sessions: [200]
+    volatility_lookback_sessions: [63]
+    rebalance_sessions: [5, 10]
+    top_n: [2, 4]
+    selection_mode: [trend_pullback]
+    short_lookback_sessions: [5, 10]
+  costs:
+    commission_bps: 0.0
+    half_spread_bps: 2.0
+    slippage_bps: 5.0

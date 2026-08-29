@@ -22,6 +22,8 @@ class RelativeStrengthSpec:
     risk_assets: tuple[str, ...]
     defensive_asset: str
     defensive_assets: tuple[str, ...] = ()
+    selection_mode: str = "relative_strength"
+    short_lookback_sessions: int = 5
 
 
 @dataclass
@@ -53,6 +55,7 @@ def _target_weights(prices: pd.DataFrame, position: int, spec: RelativeStrengthS
     current = prices.iloc[position]
     momentum = current / prices.iloc[position - spec.momentum_lookback_sessions] - 1
     trend = current / prices.iloc[position - spec.trend_lookback_sessions] - 1
+    short_return = current / prices.iloc[position - spec.short_lookback_sessions] - 1
     volatility = prices.pct_change().iloc[
         position - spec.volatility_lookback_sessions + 1 : position + 1
     ].std(ddof=0)
@@ -64,9 +67,17 @@ def _target_weights(prices: pd.DataFrame, position: int, spec: RelativeStrengthS
         and trend[ticker] > 0
         and volatility[ticker] > 0
     ]
+    if spec.selection_mode == "trend_pullback":
+        eligible = [ticker for ticker in eligible if short_return[ticker] < 0]
+    elif spec.selection_mode != "relative_strength":
+        raise ValueError(f"Unsupported relative-strength selection mode: {spec.selection_mode}")
     ranked = sorted(
         eligible,
-        key=lambda ticker: float(momentum[ticker] / volatility[ticker]),
+        key=lambda ticker: float(
+            -short_return[ticker] / volatility[ticker]
+            if spec.selection_mode == "trend_pullback"
+            else momentum[ticker] / volatility[ticker]
+        ),
         reverse=True,
     )
     selected = ranked[: spec.top_n]

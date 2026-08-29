@@ -80,3 +80,23 @@ def test_defensive_sleeve_uses_strongest_positive_defensive_asset() -> None:
     )
     weights = _target_weights(prices, 300, spec)
     assert weights["TLT"] == 1.0
+
+
+def test_trend_pullback_selects_negative_short_return_inside_positive_trend() -> None:
+    prices = close_matrix(_frames())
+    prices["SPY"] = np.linspace(100, 260, len(prices))
+    prices.loc[prices.index[295:301], "SPY"] = [250, 248, 246, 244, 242, 240]
+    prices["QQQ"] = np.linspace(100, 260, len(prices))
+    spec = RelativeStrengthSpec(
+        63,
+        126,
+        21,
+        5,
+        1,
+        ("SPY", "QQQ"),
+        "SHY",
+        selection_mode="trend_pullback",
+        short_lookback_sessions=5,
+    )
+    weights = _target_weights(prices, 300, spec)
+    assert weights["SPY"] == 1.0
