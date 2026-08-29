@@ -56,12 +56,18 @@ No tested specification is a validated winner. The next family must be selected 
 earlier development data, stress-tested across multiple folds, and evaluated without looking at
 its final period until its rules are frozen.
 
-## Predeclared next experiment — diversified ETF rotation
+## Experiment 4 — diversified ETF rotation
 
-`config/diversified_etf_research.yaml` is frozen before execution. It expands the risk universe
-to long-lived broad-market, size, sector, real-estate, and international-equity ETFs, preserving
-the three defensive sleeves. It has 24 combinations: three momentum windows, two trend windows,
-one volatility window, two rebalance intervals, and two portfolio breadth settings. Selection will
-use only the four development periods already named above; 2021–2023 validation and 2024–2026
-final holdout must remain untouched until selection is complete. Its result will be recorded here
-whether it passes or fails.
+`diversified-etf-rotation.json` evaluates the precommitted broad-market, size, sector,
+real-estate, and international-equity ETF universe using 24 combinations. It selected
+189-session momentum, 200-session trend, 63-session volatility, 20-session rebalancing, and four
+assets. Its weakest-benchmark development multiples were 0.88x, 0.83x, 0.84x, and 0.69x; the
+family was already inconsistent before untouched periods.
+
+| Period | Outcome versus SPY | Outcome versus QQQ | Decision |
+| --- | ---: | ---: | --- |
+| Validation, 2021–2023 | 0.98x | 0.98x | Rejected |
+| Final period, 2024–2026 | 0.80x | 0.75x | Rejected |
+
+The larger ETF opportunity set did not improve the evidence. No additional variants of this
+family will be selected from these validation or final-period outcomes.
