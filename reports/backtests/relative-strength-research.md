@@ -72,10 +72,17 @@ family was already inconsistent before untouched periods.
 The larger ETF opportunity set did not improve the evidence. No additional variants of this
 family will be selected from these validation or final-period outcomes.
 
-## Predeclared next experiment — trend-pullback ETF rotation
+## Experiment 5 — trend-pullback ETF rotation
 
-`config/trend_pullback_etf_research.yaml` is frozen before execution. It uses the same diversified
-ETF universe but changes the hypothesis: an asset must have positive 126/189-session momentum and
-positive 200-session trend, then it is ranked by the size of a negative 5/10-session pullback
-scaled by recent volatility. Its 16 combinations are selected only by the four pre-2021
-development periods; validation and final-period outputs will be recorded without further changes.
+`trend-pullback-etf-rotation.json` tested a long-trend, short-pullback swing hypothesis across the
+same diversified ETF universe. It selected 189-session momentum, 200-session trend, 63-session
+volatility, 10-session rebalancing, two assets, and a five-session pullback. Its development
+weakest-benchmark multiples were 0.85x, 0.79x, 0.84x, and 0.54x, so the family was not robust.
+
+| Period | Outcome versus SPY | Outcome versus QQQ | Decision |
+| --- | ---: | ---: | --- |
+| Validation, 2021–2023 | 1.13x | 1.12x | Below target; not promotable |
+| Final period, 2024–2026 | 0.83x | 0.78x | Rejected |
+
+The validation result is not a basis to re-optimize. The independent final holdout contradicts a
+durable benchmark-beating claim, so no version of this family will be deployed or labeled long.
