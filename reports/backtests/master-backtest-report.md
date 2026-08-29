@@ -51,3 +51,20 @@ and report schema only.
   simulations.
 - **Biases and limits:** this run lacks delisting-aware historical constituents, point-in-time
   fundamentals/news, full bid/ask data, capacity analysis, and vendor revision history.
+
+## Point-in-time universe coverage audit — rejected
+
+| Field | Value |
+| --- | --- |
+| Artifact | `reports/backtests/universe-coverage-2020-01-02.json` |
+| Membership snapshot | 505 S&P 500 constituents as of 2020-01-02 |
+| Membership source | MIT-licensed community interval file, pinned commit `c31ac3cc56f28cf9a02b4e694eff7ceab596a0ff` |
+| Price provider | yfinance / Yahoo convenience adapter |
+| Price coverage | 436 / 505 = **86.3%** |
+| Required coverage | 98.0% |
+| Result | **Rejected** — 69 historical members unavailable |
+
+The point-in-time membership data itself is not sufficient. Yahoo no longer returns usable bars
+for many former tickers, mergers, and renamed companies. The audit artifact retains every missing
+symbol and the CLI exits non-zero. No historical stock-universe result may be generated from this
+provider until a delisting-aware price vendor passes the same coverage audit.
