@@ -7,11 +7,12 @@ import json
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+import pandas as pd
 from dotenv import load_dotenv
 
 from .backtesting import CostModel, result_as_dict, run_long_only_backtest
 from .config import load_config, load_yaml
-from .data import configured_price_provider
+from .data import LocalCsvPriceProvider, configured_price_provider
 from .features import build_technical_features
 from .market_calendar import should_start_daily_workflow
 from .outcomes import reconcile_prediction_outcomes
@@ -24,8 +25,16 @@ from .relative_strength_research import (
     run_robust_experiment,
 )
 from .reporting import write_equity_curve_svg, write_report
+from .stock_research import run_robust_stock_experiment, stock_experiment_as_dict
 from .storage import PaperLedger
-from .universe import Sp500HistoricalConstituentSource, audit_price_coverage, require_price_coverage
+from .universe import (
+    Sp500HistoricalConstituentSource,
+    audit_price_coverage,
+    historical_tickers,
+    point_in_time_membership,
+    require_membership_price_coverage,
+    require_price_coverage,
+)
 
 
 def _root() -> Path:
@@ -233,6 +242,69 @@ def _command_reconcile_outcomes(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_stock_robust_study(args: argparse.Namespace) -> int:
+    """Run the frozen stock study only from locally supplied, audited vendor exports."""
+    root = _root()
+    document = load_yaml(root / args.config)
+    research = document["research"]
+    provider = configured_price_provider()
+    if not isinstance(provider, LocalCsvPriceProvider):
+        raise RuntimeError(
+            "stock-robust-study requires MARKET_DATA_PROVIDER=local_csv; "
+            "free-provider stock tests are not admissible"
+        )
+    interval_path = root / str(research["constituent_intervals_file"])
+    if not interval_path.is_file():
+        raise FileNotFoundError(f"Missing licensed constituent interval export: {interval_path}")
+    intervals = Sp500HistoricalConstituentSource.parse_intervals(
+        interval_path.read_text(encoding="utf-8")
+    )
+    data_start = datetime.fromisoformat(str(research["data_start"]))
+    data_end = datetime.fromisoformat(str(research["final_holdout_end"]))
+    tickers = historical_tickers(intervals, data_start.date(), data_end.date(), ("SPY", "QQQ"))
+    frames = {ticker: provider.fetch_daily(ticker, data_start, data_end) for ticker in tickers}
+    sessions = pd.DatetimeIndex(frames["SPY"].index)
+    membership = point_in_time_membership(intervals, sessions, tickers)
+    closes = pd.concat({ticker: frame["close"] for ticker, frame in frames.items()}, axis=1)
+    require_membership_price_coverage(
+        membership,
+        closes,
+        minimum_coverage=float(research["minimum_membership_price_coverage"]),
+    )
+    development = [
+        ResearchPeriod(
+            str(period["name"]),
+            datetime.fromisoformat(str(period["start"])),
+            datetime.fromisoformat(str(period["end"])),
+        )
+        for period in research["robustness_development_periods"]
+    ]
+    experiment = run_robust_stock_experiment(
+        frames,
+        membership,
+        research,
+        development,
+        ResearchPeriod(
+            "validation",
+            datetime.fromisoformat(str(research["robustness_validation_start"])),
+            datetime.fromisoformat(str(research["robustness_validation_end"])),
+        ),
+        ResearchPeriod(
+            "final_holdout",
+            datetime.fromisoformat(str(research["final_holdout_start"])),
+            data_end,
+        ),
+        CostModel(**research["costs"]),
+    )
+    output = root / args.output
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(stock_experiment_as_dict(experiment), indent=2), encoding="utf-8")
+    print(f"Wrote point-in-time stock study: {output}")
+    print(json.dumps(experiment.validation, indent=2))
+    print(json.dumps(experiment.final_holdout, indent=2))
+    return 0
+
+
 def _command_workflow_gate(_: argparse.Namespace) -> int:
     allowed = should_start_daily_workflow(datetime.now(UTC))
     print(f"run_daily={'true' if allowed else 'false'}")
@@ -293,6 +365,15 @@ def build_parser() -> argparse.ArgumentParser:
     reconcile.add_argument("--database", default="data/paper_ledger.sqlite3")
     reconcile.add_argument("--as-of", help="Optional UTC timestamp; defaults to current time")
     reconcile.set_defaults(handler=_command_reconcile_outcomes)
+    stock_study = commands.add_parser(
+        "stock-robust-study",
+        help="Run the frozen point-in-time stock study from licensed local exports",
+    )
+    stock_study.add_argument("--config", default="config/stock_momentum_research.yaml")
+    stock_study.add_argument(
+        "--output", default="reports/backtests/point-in-time-stock-momentum.json"
+    )
+    stock_study.set_defaults(handler=_command_stock_robust_study)
     gate = commands.add_parser(
         "workflow-gate", help="Print whether a 5 AM Chicago NYSE run is allowed"
     )
