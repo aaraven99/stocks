@@ -1,0 +1,39 @@
+name: Daily research
+
+on:
+  # GitHub Actions cron is UTC-only. 10:00 UTC is 5 AM CDT and 11:00 UTC is 5 AM CST.
+  schedule:
+    - cron: '0 10 * * 1-5'
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - id: gate
+        shell: bash
+        run: uv run swing-research workflow-gate >> "$GITHUB_OUTPUT"
+      - if: steps.gate.outputs.run_daily == 'true'
+        run: uv run swing-research daily
+      - if: steps.gate.outputs.run_daily == 'true'
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f data/paper_ledger.sqlite3 reports/daily
+          git diff --cached --quiet || git commit -m 'chore: record daily research artifact'
+          git push

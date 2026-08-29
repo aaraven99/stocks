@@ -1,0 +1,246 @@
+{
+  "metrics": {
+    "total_return": -0.04526955563659518,
+    "cagr": -0.015404337720253403,
+    "annualized_return": -0.011479145159980407,
+    "annualized_volatility": 0.08981056949455649,
+    "sharpe": -0.12781508039180367,
+    "sortino": -0.06976541939187327,
+    "calmar": -0.08563718847825047,
+    "maximum_drawdown": -0.17987906882493798,
+    "win_rate": 0.4166666666666667,
+    "profit_factor": 0.7939986627326265,
+    "expectancy_per_trade": -0.0022588400474890385,
+    "average_winner": 0.02089519612823123,
+    "average_loser": -0.01879743731586066,
+    "win_loss_ratio": 1.111598127825677,
+    "exposure": 0.1341301460823373,
+    "turnover": 0.06374501992031872,
+    "recovery_time_days": 1003,
+    "number_of_trades": 24,
+    "average_holding_sessions": 3.7916666666666665,
+    "alpha": -0.033751152750671295,
+    "beta": 0.1082585356074547,
+    "information_ratio": -1.3349313518196568,
+    "benchmark_total_return": 0.8077414339344995,
+    "benchmark_cagr": 0.21946129199932285
+  },
+  "trades": [
+    {
+      "entry_time": "2023-11-21 00:00:00",
+      "exit_time": "2023-12-05 00:00:00",
+      "entry_price": 368.075104901216,
+      "exit_price": 358.53914597322495,
+      "shares": 271.68368267350763,
+      "holding_sessions": 9,
+      "return_fraction": -0.025907644393799223
+    },
+    {
+      "entry_time": "2024-01-17 00:00:00",
+      "exit_time": "2024-01-18 00:00:00",
+      "entry_price": 380.1362258836324,
+      "exit_price": 383.2636501114843,
+      "shares": 256.24823136545547,
+      "holding_sessions": 1,
+      "return_fraction": 0.00822711442610391
+    },
+    {
+      "entry_time": "2024-01-22 00:00:00",
+      "exit_time": "2024-01-24 00:00:00",
+      "entry_price": 391.9327888236804,
+      "exit_price": 392.8716362796368,
+      "shares": 250.58029154054475,
+      "holding_sessions": 2,
+      "return_fraction": 0.002395429733690113
+    },
+    {
+      "entry_time": "2024-01-25 00:00:00",
+      "exit_time": "2024-01-26 00:00:00",
+      "entry_price": 396.1458734652033,
+      "exit_price": 395.6405709175253,
+      "shares": 248.50918752687588,
+      "holding_sessions": 1,
+      "return_fraction": -0.0012755466648131097
+    },
+    {
+      "entry_time": "2024-01-30 00:00:00",
+      "exit_time": "2024-02-07 00:00:00",
+      "entry_price": 403.9253509436261,
+      "exit_price": 398.64425785332344,
+      "shares": 243.41209731375739,
+      "holding_sessions": 6,
+      "return_fraction": -0.013074428425859597
+    },
+    {
+      "entry_time": "2024-02-08 00:00:00",
+      "exit_time": "2024-02-09 00:00:00",
+      "entry_price": 405.67916538078725,
+      "exit_price": 406.28568634756317,
+      "shares": 239.19107306159742,
+      "holding_sessions": 1,
+      "return_fraction": 0.0014950754648852538
+    },
+    {
+      "entry_time": "2024-02-12 00:00:00",
+      "exit_time": "2024-02-13 00:00:00",
+      "entry_price": 412.0575219411649,
+      "exit_price": 396.1982423341472,
+      "shares": 235.8406390186391,
+      "holding_sessions": 1,
+      "return_fraction": -0.03848802354658176
+    },
+    {
+      "entry_time": "2024-05-30 00:00:00",
+      "exit_time": "2024-05-31 00:00:00",
+      "entry_price": 417.2418700120228,
+      "exit_price": 409.2441955448972,
+      "shares": 223.94599719211894,
+      "holding_sessions": 1,
+      "return_fraction": -0.01916795758511758
+    },
+    {
+      "entry_time": "2024-06-24 00:00:00",
+      "exit_time": "2024-06-25 00:00:00",
+      "entry_price": 442.31770573159156,
+      "exit_price": 440.1768468755266,
+      "shares": 207.20083839918217,
+      "holding_sessions": 1,
+      "return_fraction": -0.004840093056017181
+    },
+    {
+      "entry_time": "2024-07-01 00:00:00",
+      "exit_time": "2024-07-12 00:00:00",
+      "entry_price": 441.1967055004224,
+      "exit_price": 446.1473858150839,
+      "shares": 206.72187842624365,
+      "holding_sessions": 8,
+      "return_fraction": 0.0112210273851574
+    },
+    {
+      "entry_time": "2024-12-17 00:00:00",
+      "exit_time": "2024-12-19 00:00:00",
+      "entry_price": 445.19634673479936,
+      "exit_price": 435.31748164423703,
+      "shares": 207.1634826455395,
+      "holding_sessions": 2,
+      "return_fraction": -0.02218990601117199
+    },
+    {
+      "entry_time": "2024-12-23 00:00:00",
+      "exit_time": "2024-12-24 00:00:00",
+      "entry_price": 431.11027982148164,
+      "exit_price": 428.4469678863269,
+      "shares": 209.18518943980936,
+      "holding_sessions": 1,
+      "return_fraction": -0.006177797328928425
+    },
+    {
+      "entry_time": "2025-05-02 00:00:00",
+      "exit_time": "2025-05-16 00:00:00",
+      "entry_price": 427.029299658744,
+      "exit_price": 447.31184700963684,
+      "shares": 209.87965044514723,
+      "holding_sessions": 10,
+      "return_fraction": 0.04749685177832408
+    },
+    {
+      "entry_time": "2025-05-16 00:00:00",
+      "exit_time": "2025-06-02 00:00:00",
+      "entry_price": 447.9385222681313,
+      "exit_price": 452.34851472999463,
+      "shares": 209.58602447270474,
+      "holding_sessions": 10,
+      "return_fraction": 0.009845084185957864
+    },
+    {
+      "entry_time": "2025-06-02 00:00:00",
+      "exit_time": "2025-06-03 00:00:00",
+      "entry_price": 452.9822462626895,
+      "exit_price": 456.6331088837958,
+      "shares": 209.2928092890715,
+      "holding_sessions": 1,
+      "return_fraction": 0.008059615252534957
+    },
+    {
+      "entry_time": "2025-06-06 00:00:00",
+      "exit_time": "2025-06-09 00:00:00",
+      "entry_price": 465.8144290094759,
+      "exit_price": 464.77685344438066,
+      "shares": 205.1675951213352,
+      "holding_sessions": 1,
+      "return_fraction": -0.0022274440216494273
+    },
+    {
+      "entry_time": "2025-06-13 00:00:00",
+      "exit_time": "2025-06-16 00:00:00",
+      "entry_price": 472.0769547670121,
+      "exit_price": 470.22906663662224,
+      "shares": 201.9949254593612,
+      "holding_sessions": 1,
+      "return_fraction": -0.003914379025982906
+    },
+    {
+      "entry_time": "2025-06-17 00:00:00",
+      "exit_time": "2025-06-18 00:00:00",
+      "entry_price": 471.0761585793933,
+      "exit_price": 472.9898562945112,
+      "shares": 201.63169698617065,
+      "holding_sessions": 1,
+      "return_fraction": 0.00406239560263244
+    },
+    {
+      "entry_time": "2025-06-20 00:00:00",
+      "exit_time": "2025-07-02 00:00:00",
+      "entry_price": 477.8440161314113,
+      "exit_price": 484.85414554875894,
+      "shares": 199.58342924122704,
+      "holding_sessions": 8,
+      "return_fraction": 0.014670330025478018
+    },
+    {
+      "entry_time": "2025-08-01 00:00:00",
+      "exit_time": "2025-08-07 00:00:00",
+      "entry_price": 530.1339883086306,
+      "exit_price": 521.2782931622323,
+      "shares": 182.53659486950298,
+      "holding_sessions": 4,
+      "return_fraction": -0.016704635699084203
+    },
+    {
+      "entry_time": "2026-04-23 00:00:00",
+      "exit_time": "2026-05-04 00:00:00",
+      "entry_price": 418.4880328048173,
+      "exit_price": 409.59205481619705,
+      "shares": 227.3717696907224,
+      "holding_sessions": 7,
+      "return_fraction": -0.021257425042711664
+    },
+    {
+      "entry_time": "2026-05-08 00:00:00",
+      "exit_time": "2026-05-11 00:00:00",
+      "entry_price": 415.9963702558175,
+      "exit_price": 405.93941381170924,
+      "shares": 223.87135324653886,
+      "holding_sessions": 1,
+      "return_fraction": -0.024175587007943644
+    },
+    {
+      "entry_time": "2026-06-01 00:00:00",
+      "exit_time": "2026-06-04 00:00:00",
+      "entry_price": 464.29136044574307,
+      "exit_price": 434.6866322153089,
+      "shares": 195.73529393027349,
+      "holding_sessions": 3,
+      "return_fraction": -0.06376325461238852
+    },
+    {
+      "entry_time": "2026-07-31 00:00:00",
+      "exit_time": "2026-08-14 00:00:00",
+      "entry_price": 449.4688672424283,
+      "exit_price": 495.0805352438404,
+      "shares": 189.29790676321306,
+      "holding_sessions": 10,
+      "return_fraction": 0.10147903742754827
+    }
+  ]
+}
