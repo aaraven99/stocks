@@ -58,3 +58,25 @@ def test_portfolio_backtest_records_benchmark_comparison() -> None:
     assert result.daily_turnover.sum() > 0
     assert {"SPY", "QQQ"}.issubset(result.benchmark_metrics)
     assert "terminal_wealth_multiple" in result.benchmark_metrics["SPY"]
+
+
+def test_defensive_sleeve_uses_strongest_positive_defensive_asset() -> None:
+    frames = _frames()
+    prices = close_matrix(frames)
+    prices["SPY"] = np.linspace(120, 80, len(prices))
+    prices["QQQ"] = np.linspace(120, 80, len(prices))
+    prices["TLT"] = np.linspace(100, 130, len(prices))
+    prices["GLD"] = np.linspace(110, 100, len(prices))
+    prices["SHY"] = np.linspace(102, 100, len(prices))
+    spec = RelativeStrengthSpec(
+        63,
+        126,
+        21,
+        5,
+        1,
+        ("SPY", "QQQ"),
+        "SHY",
+        ("SHY", "TLT", "GLD"),
+    )
+    weights = _target_weights(prices, 300, spec)
+    assert weights["TLT"] == 1.0

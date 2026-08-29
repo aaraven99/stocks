@@ -21,6 +21,7 @@ class RelativeStrengthSpec:
     top_n: int
     risk_assets: tuple[str, ...]
     defensive_asset: str
+    defensive_assets: tuple[str, ...] = ()
 
 
 @dataclass
@@ -71,7 +72,20 @@ def _target_weights(prices: pd.DataFrame, position: int, spec: RelativeStrengthS
     selected = ranked[: spec.top_n]
     weights = pd.Series(0.0, index=prices.columns)
     if not selected:
-        weights.loc[spec.defensive_asset] = 1.0
+        defensive_candidates = tuple(dict.fromkeys((spec.defensive_asset, *spec.defensive_assets)))
+        defensive_eligible = [
+            ticker
+            for ticker in defensive_candidates
+            if ticker in prices and momentum[ticker] > 0 and volatility[ticker] > 0
+        ]
+        if defensive_eligible:
+            best_defensive = max(
+                defensive_eligible,
+                key=lambda ticker: float(momentum[ticker] / volatility[ticker]),
+            )
+            weights.loc[best_defensive] = 1.0
+        else:
+            weights.loc[spec.defensive_asset] = 1.0
         return weights
     inverse_volatility = (1 / volatility.loc[selected]).replace([np.inf, -np.inf], np.nan).dropna()
     if inverse_volatility.empty:

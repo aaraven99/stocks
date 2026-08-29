@@ -38,9 +38,20 @@ were 1.04x, 0.90x, 0.77x, and 0.94x, respectively—already too inconsistent for
 | Validation, 2021–2023 | 1.16x | 1.16x | Insufficient for target |
 | Final period, 2024–2026 | 0.97x | 0.90x | Rejected |
 
+## Experiment 3 — dual momentum with defensive sleeves
+
+`dual-momentum-defensive.json` used the same equity ETF universe but, whenever no equity asset
+passed absolute momentum/trend checks, selected the strongest positive one of SHY, TLT, and GLD.
+It was selected only from the same four pre-2021 development periods. Its weakest-benchmark
+development multiples were 0.98x, 0.91x, 0.70x, and 0.93x—again below parity too often.
+
+| Period | Outcome versus SPY | Outcome versus QQQ | Decision |
+| --- | ---: | ---: | --- |
+| Validation, 2021–2023 | 1.16x | 1.16x | Insufficient for target |
+| Final period, 2024–2026 | 1.04x | 0.98x | Rejected |
+
 ## Current conclusion
 
 No tested specification is a validated winner. The next family must be selected strictly from
 earlier development data, stress-tested across multiple folds, and evaluated without looking at
 its final period until its rules are frozen.
-

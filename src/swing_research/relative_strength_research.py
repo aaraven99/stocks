@@ -61,6 +61,7 @@ def generate_specs(research: dict[str, Any]) -> list[RelativeStrengthSpec]:
             top_n=top_n,
             risk_assets=tuple(research["risk_assets"]),
             defensive_asset=str(research["defensive_asset"]),
+            defensive_assets=tuple(research.get("defensive_assets", [])),
         )
         for momentum, trend, volatility, rebalance, top_n in product(
             grid["momentum_lookback_sessions"],
