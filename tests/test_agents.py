@@ -11,6 +11,12 @@ def test_narrative_synthesis_skips_without_a_key() -> None:
     assert result.status == "DISABLED by config"
 
 
+def test_unpromoted_strategy_cannot_issue_long_classification() -> None:
+    candidates, _, _ = run_demo_research()
+    assessments = agents.deterministic_assessments(candidates[0])
+    assert assessments[-1].classification == "WATCH"
+
+
 def test_narrative_synthesis_rejects_unsourced_numbers(monkeypatch: object) -> None:
     candidates, _, _ = run_demo_research()
 

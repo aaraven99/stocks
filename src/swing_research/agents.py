@@ -83,14 +83,17 @@ def deterministic_assessments(candidate: Candidate) -> list[AgentAssessment]:
         values={"regime": candidate.regime, "regime_fit_score": candidate.regime_fit_score},
         sources=[candidate.source, regime_source],
     )
+    promotion_blocked = any(
+        "has not passed the benchmark promotion gate" in item for item in candidate.limitations
+    )
     classification = "WATCH"
-    if (
+    if not promotion_blocked and (
         candidate.composite_score >= 75
         and candidate.regime_fit_score >= 70
         and candidate.risk_score >= 45
     ):
         classification = "LONG CANDIDATE"
-    if (
+    if not promotion_blocked and (
         candidate.composite_score >= 85
         and candidate.regime_fit_score >= 85
         and candidate.risk_score >= 60
@@ -99,8 +102,8 @@ def deterministic_assessments(candidate: Candidate) -> list[AgentAssessment]:
     final = Evidence(
         agent="final_decision",
         claim=(
-            "Final classification is derived from fixed score and risk thresholds, "
-            "not an LLM opinion."
+            "Final classification is derived from fixed score, risk thresholds, and a "
+            "benchmark-promotion gate; it is not an LLM opinion."
         ),
         values={"classification": classification, "composite_score": candidate.composite_score},
         sources=[candidate.source, regime_source],

@@ -63,6 +63,8 @@ def score_candidate(ticker: str, features: pd.DataFrame, regime: MarketRegime) -
         source=source,
         feature_values=values,
         limitations=[
+            "This scoring strategy has not passed the benchmark promotion gate; "
+            "classification is WATCH only.",
             "Fundamental, earnings, and news adapters are not part of the starter composite.",
             "The configured universe is not point-in-time historical membership.",
         ],
