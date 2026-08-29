@@ -55,3 +55,13 @@ development multiples were 0.98x, 0.91x, 0.70x, and 0.93x—again below parity t
 No tested specification is a validated winner. The next family must be selected strictly from
 earlier development data, stress-tested across multiple folds, and evaluated without looking at
 its final period until its rules are frozen.
+
+## Predeclared next experiment — diversified ETF rotation
+
+`config/diversified_etf_research.yaml` is frozen before execution. It expands the risk universe
+to long-lived broad-market, size, sector, real-estate, and international-equity ETFs, preserving
+the three defensive sleeves. It has 24 combinations: three momentum windows, two trend windows,
+one volatility window, two rebalance intervals, and two portfolio breadth settings. Selection will
+use only the four development periods already named above; 2021–2023 validation and 2024–2026
+final holdout must remain untouched until selection is complete. Its result will be recorded here
+whether it passes or fails.
