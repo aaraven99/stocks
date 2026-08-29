@@ -10,11 +10,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from .backtesting import CostModel, result_as_dict, run_long_only_backtest
-from .config import load_config
+from .config import load_config, load_yaml
 from .data import YFinancePriceProvider
 from .features import build_technical_features
 from .market_calendar import should_start_daily_workflow
 from .pipeline import run_daily_research, run_demo_research
+from .relative_strength_research import (
+    ResearchPeriod,
+    experiment_as_dict,
+    robust_experiment_as_dict,
+    run_predeclared_experiment,
+    run_robust_experiment,
+)
 from .reporting import write_equity_curve_svg, write_report
 from .storage import PaperLedger
 
@@ -77,6 +84,90 @@ def _command_backtest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_portfolio_study(args: argparse.Namespace) -> int:
+    root = _root()
+    document = load_yaml(root / args.config)
+    research = document["research"]
+    provider = YFinancePriceProvider()
+    data_start = datetime.fromisoformat(str(research["data_start"]))
+    data_end = datetime.fromisoformat(str(research["holdout_end"]))
+    frames = {
+        ticker: provider.fetch_daily(ticker, data_start, data_end)
+        for ticker in research["instruments"]
+    }
+    costs = CostModel(**research["costs"])
+    experiment = run_predeclared_experiment(
+        frames,
+        research,
+        ResearchPeriod(
+            "train",
+            datetime.fromisoformat(str(research["train_start"])),
+            datetime.fromisoformat(str(research["train_end"])),
+        ),
+        ResearchPeriod(
+            "validation",
+            datetime.fromisoformat(str(research["validation_start"])),
+            datetime.fromisoformat(str(research["validation_end"])),
+        ),
+        ResearchPeriod(
+            "holdout",
+            datetime.fromisoformat(str(research["holdout_start"])),
+            data_end,
+        ),
+        costs,
+    )
+    output = root / args.output
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(experiment_as_dict(experiment), indent=2), encoding="utf-8")
+    print(f"Wrote predeclared portfolio study: {output}")
+    print(json.dumps(experiment.holdout, indent=2))
+    return 0
+
+
+def _command_robust_portfolio_study(args: argparse.Namespace) -> int:
+    root = _root()
+    document = load_yaml(root / args.config)
+    research = document["research"]
+    provider = YFinancePriceProvider()
+    data_start = datetime.fromisoformat(str(research["data_start"]))
+    data_end = datetime.fromisoformat(str(research["final_holdout_end"]))
+    frames = {
+        ticker: provider.fetch_daily(ticker, data_start, data_end)
+        for ticker in research["instruments"]
+    }
+    development = [
+        ResearchPeriod(
+            str(period["name"]),
+            datetime.fromisoformat(str(period["start"])),
+            datetime.fromisoformat(str(period["end"])),
+        )
+        for period in research["robustness_development_periods"]
+    ]
+    experiment = run_robust_experiment(
+        frames,
+        research,
+        development,
+        ResearchPeriod(
+            "validation",
+            datetime.fromisoformat(str(research["robustness_validation_start"])),
+            datetime.fromisoformat(str(research["robustness_validation_end"])),
+        ),
+        ResearchPeriod(
+            "final_holdout",
+            datetime.fromisoformat(str(research["final_holdout_start"])),
+            data_end,
+        ),
+        CostModel(**research["costs"]),
+    )
+    output = root / args.output
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(robust_experiment_as_dict(experiment), indent=2), encoding="utf-8")
+    print(f"Wrote robust portfolio study: {output}")
+    print(json.dumps(experiment.validation, indent=2))
+    print(json.dumps(experiment.final_holdout, indent=2))
+    return 0
+
+
 def _command_workflow_gate(_: argparse.Namespace) -> int:
     allowed = should_start_daily_workflow(datetime.now(UTC))
     print(f"run_daily={'true' if allowed else 'false'}")
@@ -102,6 +193,24 @@ def build_parser() -> argparse.ArgumentParser:
     backtest.add_argument("--config", default="config")
     backtest.add_argument("--output", default="reports/backtests/latest-backtest.json")
     backtest.set_defaults(handler=_command_backtest)
+    study = commands.add_parser(
+        "portfolio-study",
+        help="Run predeclared train-only ETF relative-strength selection and untouched holdout",
+    )
+    study.add_argument("--config", default="config/relative_strength_research.yaml")
+    study.add_argument(
+        "--output", default="reports/backtests/predeclared-etf-relative-strength.json"
+    )
+    study.set_defaults(handler=_command_portfolio_study)
+    robust_study = commands.add_parser(
+        "robust-portfolio-study",
+        help="Select across development folds before later validation and final holdout",
+    )
+    robust_study.add_argument("--config", default="config/relative_strength_research.yaml")
+    robust_study.add_argument(
+        "--output", default="reports/backtests/robust-etf-relative-strength.json"
+    )
+    robust_study.set_defaults(handler=_command_robust_portfolio_study)
     gate = commands.add_parser(
         "workflow-gate", help="Print whether a 5 AM Chicago NYSE run is allowed"
     )

@@ -56,9 +56,12 @@ def validate_ohlcv(frame: pd.DataFrame, as_of: datetime | None = None) -> pd.Dat
         raise DataValidationError("Non-positive price present")
     if (normalized["volume"] < 0).any():
         raise DataValidationError("Negative volume present")
-    if (normalized["high"] < normalized[["open", "close", "low"]].max(axis=1)).any():
+    upper_reference = normalized[["open", "close", "low"]].max(axis=1)
+    lower_reference = normalized[["open", "close", "high"]].min(axis=1)
+    tolerance = normalized[["open", "high", "low", "close"]].abs().max(axis=1) * 1e-10
+    if (normalized["high"] + tolerance < upper_reference).any():
         raise DataValidationError("High is below another bar price")
-    if (normalized["low"] > normalized[["open", "close", "high"]].min(axis=1)).any():
+    if (normalized["low"] - tolerance > lower_reference).any():
         raise DataValidationError("Low is above another bar price")
     if as_of is not None:
         cutoff = pd.Timestamp(as_of).tz_localize(None).normalize()

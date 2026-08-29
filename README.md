@@ -56,4 +56,5 @@ See [architecture](docs/architecture.md), [methodology](docs/methodology.md),
 [backtesting](docs/backtesting.md), [data sources](docs/data-sources.md),
 [model training](docs/model-training.md), [agents](docs/agent-system.md),
 [roadmap](docs/roadmap.md), [licensing](docs/licensing.md), and the
-[decision log](docs/decision-log.md).
+[decision log](docs/decision-log.md). The current benchmark research status is recorded in
+[the relative-strength ledger](reports/backtests/relative-strength-research.md).
