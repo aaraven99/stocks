@@ -47,6 +47,10 @@ features and a market regime, ranks a small funnel, applies risk gates, stores p
 writes a dated Markdown report. The GitHub workflow invokes it on both possible UTC schedule
 hours and the Python gate runs only at 05:00 America/Chicago on NYSE sessions.
 
+Run `swing-research reconcile-outcomes` after predicted holding horizons complete. It enters at
+the next available open, applies the configured costs, records only fully observed outcomes, and
+keeps SPY/QQQ comparisons alongside each paper result.
+
 ## Important limitations
 
 - The starter ticker list is not historical index membership; broad historical tests therefore

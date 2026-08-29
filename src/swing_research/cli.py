@@ -14,6 +14,7 @@ from .config import load_config, load_yaml
 from .data import configured_price_provider
 from .features import build_technical_features
 from .market_calendar import should_start_daily_workflow
+from .outcomes import reconcile_prediction_outcomes
 from .pipeline import run_daily_research, run_demo_research
 from .relative_strength_research import (
     ResearchPeriod,
@@ -205,6 +206,33 @@ def _command_universe_audit(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_reconcile_outcomes(args: argparse.Namespace) -> int:
+    root = _root()
+    load_dotenv(root / ".env")
+    configuration = load_config(root / args.config)
+    ledger = PaperLedger(root / args.database)
+    try:
+        as_of = (
+            datetime.fromisoformat(args.as_of).replace(tzinfo=UTC)
+            if args.as_of
+            else datetime.now(UTC)
+        )
+        reconciled = reconcile_prediction_outcomes(
+            ledger,
+            configured_price_provider(),
+            as_of,
+            CostModel(**configuration["strategy"]["costs"]),
+        )
+        print(
+            f"Reconciled {reconciled} outcomes; "
+            f"{len(ledger.pending_predictions())} remain pending; "
+            f"{ledger.outcome_count()} total outcomes persisted"
+        )
+    finally:
+        ledger.close()
+    return 0
+
+
 def _command_workflow_gate(_: argparse.Namespace) -> int:
     allowed = should_start_daily_workflow(datetime.now(UTC))
     print(f"run_daily={'true' if allowed else 'false'}")
@@ -257,6 +285,14 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--lookback-days", type=int, default=14)
     audit.add_argument("--output", default="reports/data/universe-coverage-audit.json")
     audit.set_defaults(handler=_command_universe_audit)
+    reconcile = commands.add_parser(
+        "reconcile-outcomes",
+        help="Record completed, next-open paper outcomes for previously persisted predictions",
+    )
+    reconcile.add_argument("--config", default="config")
+    reconcile.add_argument("--database", default="data/paper_ledger.sqlite3")
+    reconcile.add_argument("--as-of", help="Optional UTC timestamp; defaults to current time")
+    reconcile.set_defaults(handler=_command_reconcile_outcomes)
     gate = commands.add_parser(
         "workflow-gate", help="Print whether a 5 AM Chicago NYSE run is allowed"
     )
