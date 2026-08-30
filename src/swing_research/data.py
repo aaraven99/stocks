@@ -134,7 +134,7 @@ class YFinancePriceProvider:
             progress=False,
             actions=False,
             group_by="ticker",
-            threads=True,
+            threads=False,
             timeout=self.timeout_seconds,
         )
         if not isinstance(raw.columns, pd.MultiIndex):

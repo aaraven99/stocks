@@ -186,5 +186,5 @@ def test_yfinance_batch_fetches_a_small_universe_in_one_bounded_request(
     assert sorted(result) == ["ABC", "DEF"]
     assert request["tickers"] == ["ABC", "DEF"]
     assert request["group_by"] == "ticker"
-    assert request["threads"] is True
+    assert request["threads"] is False
     assert request["timeout"] == 7.5
