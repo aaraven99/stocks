@@ -13,7 +13,13 @@ returns raw source URLs for audit.
 than exposing it in an application URL. It returns deduplicated, timestamped company-news evidence
 only; no Finnhub headline can change a quantitative score until availability timing and historical
 coverage have passed a separate point-in-time study. Finnhub documents one year of company-news
-history on its free tier and requires an API token for GET requests.
+history on its free tier and requires an API token for GET requests. As this repository is public,
+raw Finnhub data and any Finnhub-derived output are prohibited from being committed, published, or
+shared unless Finnhub gives written redistribution approval. The client has no persistence or
+reporting method; keep any permitted personal research local under the ignored `data/private/` and
+`reports/private/` directories. `MARKET_DATA_PROVIDER=finnhub` is deliberately blocked: the
+project does not assume that an account is licensed for Finnhub stock-candle access, and it will
+not silently substitute a paid endpoint or attempt to bypass an entitlement restriction.
 
 The proposed Hugging Face dataset
 [`mito0o852/OHLCV-1m`](https://huggingface.co/datasets/mito0o852/OHLCV-1m) is recorded as a
@@ -21,8 +27,9 @@ candidate, not an admissible backtest provider. Its public card says it republis
 originally from Finnhub, has files through March 2026, and does not declare a dataset license. It
 also does not establish corporate-action treatment, point-in-time constituent membership, delisted
 security coverage, or revision history. Do not download its 87+ GB archive or use it in the
-stock-universe study unless the publisher supplies a compatible license and provenance, and the
-required independent coverage audit passes.
+stock-universe study unless both the publisher supplies a compatible license and Finnhub confirms
+that the redistribution and intended use are authorized, and the required independent coverage
+audit passes.
 
 `Sp500HistoricalConstituentSource` pins an MIT-licensed community interval file from
 [`fja05680/sp500`](https://github.com/fja05680/sp500) to commit

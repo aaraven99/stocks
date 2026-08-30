@@ -12,10 +12,13 @@ news:
   enabled: false
   provider: finnhub
   freshness_max_age_hours: 24
+  usage: personal_only_no_public_redistribution_without_provider_approval
+  persistence: none
   # Uses FINNHUBKEY. Finnhub company-news evidence remains outside the numerical composite
-  # until availability timestamps and historical coverage pass a separate study.
+  # until availability timestamps and historical coverage pass a separate study. Never put raw
+  # Finnhub data or derived results in this public repository without written provider approval.
 historical_market_data_candidate:
   provider: huggingface_ohlcv_1m
   dataset: mito0o852/OHLCV-1m
   data_cutoff: 2026-03
-  status: rejected_pending_license_and_provenance_review
+  status: prohibited_pending_publisher_license_and_source_redistribution_authorization

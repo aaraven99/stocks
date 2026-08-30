@@ -10,6 +10,9 @@ __pycache__/
 data/cache/
 data/processed/
 data/licensed_ohlcv/
+# Provider data or derived artifacts whose plan/license forbids public redistribution.
+data/private/
+reports/private/
 reports/daily/*.md
 reports/experiments/*.json
 models/registry/*.joblib

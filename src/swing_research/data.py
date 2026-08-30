@@ -148,6 +148,13 @@ def configured_price_provider() -> PriceProvider:
                 "LOCAL_OHLCV_DIRECTORY is required when MARKET_DATA_PROVIDER=local_csv"
             )
         return LocalCsvPriceProvider(directory)
+    if configured == "finnhub":
+        raise ValueError(
+            "MARKET_DATA_PROVIDER=finnhub is not enabled: this project uses Finnhub only for "
+            "private company-news evidence. Its stock-candle access must be separately licensed "
+            "and implemented after written provider authorization. Use an admissible licensed "
+            "local_csv export instead."
+        )
     raise ValueError(f"Unsupported MARKET_DATA_PROVIDER: {configured}")
 
 
@@ -182,7 +189,9 @@ class FinnhubNewsClient:
 
     The adapter deliberately returns source records only. It does not turn headlines into a
     trading score because the available-at timestamp and historic coverage need separate
-    validation before a news feature can enter a backtest.
+    validation before a news feature can enter a backtest. Under Finnhub's personal-plan terms,
+    callers must keep returned data and any derived output private unless they have written
+    redistribution approval; this class intentionally has no persistence or reporting method.
     """
 
     base_url = "https://finnhub.io/api/v1"

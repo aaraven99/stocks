@@ -41,6 +41,14 @@ file. No separate news key is required for the Finnhub adapter. Official SEC EDG
 no API key; set `SEC_USER_AGENT=Your Name contact@example.com` instead. News remains outside the
 numerical ranking until it passes its own point-in-time validation.
 
+This is a public repository. Keep Finnhub data and any output derived from it private unless
+Finnhub has given written redistribution approval; the ignored `data/private/` and
+`reports/private/` directories are provided for that purpose. The Hugging Face OHLCV archive is not
+used because its card has no declared dataset license and attributes the data to Finnhub. This
+project enforces provider terms as a research constraint; it is not legal advice. In particular,
+do not set `MARKET_DATA_PROVIDER=finnhub`: this repository has no assumed entitlement to Finnhub's
+stock-candle data. A licensed, local CSV export is required for the admissible stock-universe study.
+
 For a licensed delisting-aware price export, set `MARKET_DATA_PROVIDER=local_csv` and
 `LOCAL_OHLCV_DIRECTORY` in that same `.env` file, then run `universe-audit` before any
 stock-universe study. The adapter expects one `<ticker>.csv` per symbol with date and OHLCV fields.

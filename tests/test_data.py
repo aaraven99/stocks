@@ -10,6 +10,7 @@ from swing_research.data import (
     DataValidationError,
     FinnhubNewsClient,
     LocalCsvPriceProvider,
+    configured_price_provider,
     validate_ohlcv,
 )
 
@@ -134,3 +135,11 @@ def test_finnhub_news_is_deduplicated_timestamped_and_does_not_put_key_in_url() 
 def test_finnhub_news_requires_key() -> None:
     with pytest.raises(ValueError, match="FINNHUBKEY"):
         FinnhubNewsClient("")
+
+
+def test_finnhub_is_not_assumed_to_be_a_licensed_price_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MARKET_DATA_PROVIDER", "finnhub")
+    with pytest.raises(ValueError, match="not enabled"):
+        configured_price_provider()
