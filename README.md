@@ -36,6 +36,11 @@ To enable optional narrative synthesis, create the ignored file
 set `agents.use_openrouter_narrative: true` in `config/agents.yaml`. The default pipeline works
 without it.
 
+For timestamped company-news evidence, add `FINNHUBKEY=<your Finnhub key>` to that same ignored
+file. No separate news key is required for the Finnhub adapter. Official SEC EDGAR ingestion needs
+no API key; set `SEC_USER_AGENT=Your Name contact@example.com` instead. News remains outside the
+numerical ranking until it passes its own point-in-time validation.
+
 For a licensed delisting-aware price export, set `MARKET_DATA_PROVIDER=local_csv` and
 `LOCAL_OHLCV_DIRECTORY` in that same `.env` file, then run `universe-audit` before any
 stock-universe study. The adapter expects one `<ticker>.csv` per symbol with date and OHLCV fields.

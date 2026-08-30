@@ -61,3 +61,16 @@ class PaperPrediction(BaseModel):
     model_version: str
     feature_version: str
     payload: dict[str, Any]
+
+
+class NewsArticle(BaseModel):
+    """A timestamped external news record kept outside quantitative scoring."""
+
+    article_id: int | str
+    ticker: str
+    published_at: datetime
+    retrieved_at: datetime
+    source: str
+    headline: str
+    summary: str
+    url: str

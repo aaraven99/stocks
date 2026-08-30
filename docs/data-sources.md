@@ -6,7 +6,23 @@ licensed point-in-time vendor and historical constituent files before making bro
 claims.
 
 `SecEdgarClient` uses the official `data.sec.gov` issuer-submissions endpoint and requires a
-descriptive `SEC_USER_AGENT`. It rate-limits requests and returns raw source URLs for audit.
+descriptive `SEC_USER_AGENT`; it does **not** need an SEC API key. It rate-limits requests and
+returns raw source URLs for audit.
+
+`FinnhubNewsClient` uses `FINNHUBKEY` and sends it in the `X-Finnhub-Token` request header rather
+than exposing it in an application URL. It returns deduplicated, timestamped company-news evidence
+only; no Finnhub headline can change a quantitative score until availability timing and historical
+coverage have passed a separate point-in-time study. Finnhub documents one year of company-news
+history on its free tier and requires an API token for GET requests.
+
+The proposed Hugging Face dataset
+[`mito0o852/OHLCV-1m`](https://huggingface.co/datasets/mito0o852/OHLCV-1m) is recorded as a
+candidate, not an admissible backtest provider. Its public card says it republishes minute data
+originally from Finnhub, has files through March 2026, and does not declare a dataset license. It
+also does not establish corporate-action treatment, point-in-time constituent membership, delisted
+security coverage, or revision history. Do not download its 87+ GB archive or use it in the
+stock-universe study unless the publisher supplies a compatible license and provenance, and the
+required independent coverage audit passes.
 
 `Sp500HistoricalConstituentSource` pins an MIT-licensed community interval file from
 [`fja05680/sp500`](https://github.com/fja05680/sp500) to commit

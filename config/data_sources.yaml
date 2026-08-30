@@ -10,5 +10,12 @@ sec:
   rate_limit_per_second: 8
 news:
   enabled: false
-  provider: none
+  provider: finnhub
   freshness_max_age_hours: 24
+  # Uses FINNHUBKEY. Finnhub company-news evidence remains outside the numerical composite
+  # until availability timestamps and historical coverage pass a separate study.
+historical_market_data_candidate:
+  provider: huggingface_ohlcv_1m
+  dataset: mito0o852/OHLCV-1m
+  data_cutoff: 2026-03
+  status: rejected_pending_license_and_provenance_review

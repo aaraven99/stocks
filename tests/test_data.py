@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from swing_research.data import DataValidationError, LocalCsvPriceProvider, validate_ohlcv
+from swing_research.data import (
+    DataValidationError,
+    FinnhubNewsClient,
+    LocalCsvPriceProvider,
+    validate_ohlcv,
+)
 
 
 def _bars() -> pd.DataFrame:
@@ -61,3 +66,71 @@ def test_local_csv_provider_rejects_ticker_path_escape(tmp_path: Path) -> None:
         provider.fetch_daily(
             "../escape", datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 1, 2, tzinfo=UTC)
         )
+
+
+class _FakeResponse:
+    def __init__(self, payload: object) -> None:
+        self.payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> object:
+        return self.payload
+
+
+class _FakeSession:
+    def __init__(self, payload: object) -> None:
+        self.payload = payload
+        self.request: dict[str, object] | None = None
+
+    def get(self, url: str, **kwargs: object) -> _FakeResponse:
+        self.request = {"url": url, **kwargs}
+        return _FakeResponse(self.payload)
+
+
+def test_finnhub_news_is_deduplicated_timestamped_and_does_not_put_key_in_url() -> None:
+    session = _FakeSession(
+        [
+            {
+                "id": 7,
+                "datetime": 1_704_067_200,
+                "headline": "First",
+                "source": "Example",
+                "summary": "Summary",
+                "url": "https://example.test/first",
+            },
+            {
+                "id": 7,
+                "datetime": 1_704_067_200,
+                "headline": "Duplicate",
+                "source": "Example",
+                "summary": "Summary",
+                "url": "https://example.test/duplicate",
+            },
+            {
+                "id": 8,
+                "datetime": 1_704_240_000,
+                "headline": "Future",
+                "source": "Example",
+                "summary": "Summary",
+                "url": "https://example.test/future",
+            },
+        ]
+    )
+    result = FinnhubNewsClient("secret", session).company_news(
+        "aapl",
+        date(2024, 1, 1),
+        date(2024, 1, 3),
+        as_of=datetime(2024, 1, 2, 12, tzinfo=UTC),
+    )
+    assert [article.article_id for article in result] == [7]
+    assert result[0].ticker == "AAPL"
+    assert session.request is not None
+    assert "secret" not in str(session.request["url"])
+    assert session.request["headers"] == {"X-Finnhub-Token": "secret"}
+
+
+def test_finnhub_news_requires_key() -> None:
+    with pytest.raises(ValueError, match="FINNHUBKEY"):
+        FinnhubNewsClient("")

@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import os
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Protocol
 
 import numpy as np
 import pandas as pd
 import requests
+
+from .schemas import NewsArticle
 
 
 class DataValidationError(ValueError):
@@ -173,6 +175,101 @@ class SecEdgarClient:
         self._last_request_at = time.monotonic()
         response.raise_for_status()
         return response.json(), url
+
+
+class FinnhubNewsClient:
+    """Timestamped Finnhub company-news adapter for research evidence.
+
+    The adapter deliberately returns source records only. It does not turn headlines into a
+    trading score because the available-at timestamp and historic coverage need separate
+    validation before a news feature can enter a backtest.
+    """
+
+    base_url = "https://finnhub.io/api/v1"
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        session: requests.Session | None = None,
+    ) -> None:
+        configured_api_key = api_key or os.getenv("FINNHUBKEY", "")
+        if not configured_api_key:
+            raise ValueError("FINNHUBKEY is required to request Finnhub news")
+        self.api_key = configured_api_key
+        self.session = session or requests.Session()
+
+    def company_news(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+        as_of: datetime | None = None,
+    ) -> list[NewsArticle]:
+        """Return unique North-American company articles published no later than ``as_of``.
+
+        Finnhub's company-news endpoint is free-tier eligible for one year of history, but this
+        method does not infer that every historical article was available at its publish time.
+        Callers must retain the returned timestamps and source URL as evidence.
+        """
+        if end < start:
+            raise ValueError("Finnhub news end date must not precede start date")
+        normalized_ticker = ticker.strip().upper()
+        if not normalized_ticker:
+            raise ValueError("Finnhub news ticker is required")
+        response = self.session.get(
+            f"{self.base_url}/company-news",
+            params={
+                "symbol": normalized_ticker,
+                "from": start.isoformat(),
+                "to": end.isoformat(),
+            },
+            headers={"X-Finnhub-Token": self.api_key},
+            timeout=20,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, list):
+            raise DataValidationError("Finnhub company-news response must be a JSON list")
+        observed_at = datetime.now(UTC)
+        cutoff = as_of.astimezone(UTC) if as_of is not None else None
+        articles: list[NewsArticle] = []
+        seen_ids: set[int | str] = set()
+        for item in payload:
+            if not isinstance(item, dict):
+                raise DataValidationError("Finnhub company-news item must be an object")
+            article_id = item.get("id")
+            published_timestamp = item.get("datetime")
+            headline = item.get("headline")
+            source = item.get("source")
+            url = item.get("url")
+            if (
+                article_id is None
+                or not isinstance(published_timestamp, int | float)
+                or not isinstance(headline, str)
+                or not isinstance(source, str)
+                or not isinstance(url, str)
+            ):
+                raise DataValidationError("Finnhub company-news item is missing required evidence")
+            published_at = datetime.fromtimestamp(published_timestamp, UTC)
+            if cutoff is not None and published_at > cutoff:
+                continue
+            if article_id in seen_ids:
+                continue
+            seen_ids.add(article_id)
+            summary = item.get("summary")
+            articles.append(
+                NewsArticle(
+                    article_id=article_id,
+                    ticker=normalized_ticker,
+                    published_at=published_at,
+                    retrieved_at=observed_at,
+                    source=source,
+                    headline=headline,
+                    summary=summary if isinstance(summary, str) else "",
+                    url=url,
+                )
+            )
+        return sorted(articles, key=lambda article: (article.published_at, str(article.article_id)))
 
 
 def repository_root() -> Path:
