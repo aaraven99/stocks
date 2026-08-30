@@ -168,6 +168,11 @@ def test_yfinance_timeout_must_be_positive() -> None:
         YFinancePriceProvider(timeout_seconds=0)
 
 
+def test_yfinance_batch_size_must_not_revert_to_one_ticker_requests() -> None:
+    with pytest.raises(ValueError, match="at least two"):
+        YFinancePriceProvider(batch_size=1)
+
+
 def test_yfinance_batch_fetches_a_small_universe_in_one_bounded_request(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -188,3 +193,22 @@ def test_yfinance_batch_fetches_a_small_universe_in_one_bounded_request(
     assert request["group_by"] == "ticker"
     assert request["threads"] is False
     assert request["timeout"] == 7.5
+
+
+def test_yfinance_splits_a_larger_universe_into_small_serial_batches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requests: list[list[str]] = []
+
+    def download(tickers: list[str], **_: object) -> pd.DataFrame:
+        requests.append(tickers)
+        return pd.concat({ticker: _bars() for ticker in tickers}, axis=1)
+
+    monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(download=download))
+    result = YFinancePriceProvider(batch_size=2).fetch_daily_many(
+        ["ABC", "DEF", "GHI", "JKL"],
+        datetime(2024, 1, 1, tzinfo=UTC),
+        datetime(2024, 1, 3, tzinfo=UTC),
+    )
+    assert sorted(result) == ["ABC", "DEF", "GHI", "JKL"]
+    assert requests == [["ABC", "DEF"], ["GHI", "JKL"]]

@@ -85,10 +85,13 @@ def assert_fresh(last_bar: pd.Timestamp, now: datetime, max_age: timedelta) -> N
 class YFinancePriceProvider:
     """Optional personal-research adapter; not a survivorship-bias-free data source."""
 
-    def __init__(self, timeout_seconds: float = 15.0) -> None:
+    def __init__(self, timeout_seconds: float = 15.0, batch_size: int = 2) -> None:
         if timeout_seconds <= 0:
             raise ValueError("YFinance timeout_seconds must be positive")
+        if batch_size < 2:
+            raise ValueError("YFinance batch_size must be at least two")
         self.timeout_seconds = timeout_seconds
+        self.batch_size = batch_size
 
     def fetch_daily(self, ticker: str, start: datetime, end: datetime) -> pd.DataFrame:
         try:
@@ -126,26 +129,32 @@ class YFinancePriceProvider:
             import yfinance as yf
         except ImportError as exc:  # pragma: no cover - dependency declaration covers normal use
             raise RuntimeError("Install the yfinance optional market-data dependency") from exc
-        raw = yf.download(
-            normalized_tickers,
-            start=start.date().isoformat(),
-            end=(end.date() + timedelta(days=1)).isoformat(),
-            auto_adjust=True,
-            progress=False,
-            actions=False,
-            group_by="ticker",
-            threads=False,
-            timeout=self.timeout_seconds,
-        )
-        if not isinstance(raw.columns, pd.MultiIndex):
-            raise DataValidationError("Yahoo batch response must use ticker-grouped columns")
-        returned_tickers = set(raw.columns.get_level_values(0))
-        missing = [ticker for ticker in normalized_tickers if ticker not in returned_tickers]
-        if missing:
-            raise DataValidationError(f"Yahoo batch response is missing tickers: {missing}")
-        return {
-            ticker: validate_ohlcv(raw[ticker], as_of=end) for ticker in normalized_tickers
-        }
+        frames: dict[str, pd.DataFrame] = {}
+        for offset in range(0, len(normalized_tickers), self.batch_size):
+            batch = normalized_tickers[offset : offset + self.batch_size]
+            if len(batch) == 1:
+                ticker = batch[0]
+                frames[ticker] = self.fetch_daily(ticker, start, end)
+                continue
+            raw = yf.download(
+                batch,
+                start=start.date().isoformat(),
+                end=(end.date() + timedelta(days=1)).isoformat(),
+                auto_adjust=True,
+                progress=False,
+                actions=False,
+                group_by="ticker",
+                threads=False,
+                timeout=self.timeout_seconds,
+            )
+            if not isinstance(raw.columns, pd.MultiIndex):
+                raise DataValidationError("Yahoo batch response must use ticker-grouped columns")
+            returned_tickers = set(raw.columns.get_level_values(0))
+            missing = [ticker for ticker in batch if ticker not in returned_tickers]
+            if missing:
+                raise DataValidationError(f"Yahoo batch response is missing tickers: {missing}")
+            frames.update({ticker: validate_ohlcv(raw[ticker], as_of=end) for ticker in batch})
+        return frames
 
 
 class LocalCsvPriceProvider:
