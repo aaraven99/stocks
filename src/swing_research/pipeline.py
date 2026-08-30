@@ -72,11 +72,14 @@ def run_daily_research(
             "inside public GitHub Actions."
         )
     tickers = list(dict.fromkeys([benchmark_ticker, *universe["tickers"]]))
-    frames: dict[str, pd.DataFrame] = {}
-    for ticker in tickers:
-        frame = market_provider.fetch_daily(ticker, start, expected_end)
+    if isinstance(market_provider, YFinancePriceProvider):
+        frames = market_provider.fetch_daily_many(tickers, start, expected_end)
+    else:
+        frames = {}
+        for ticker in tickers:
+            frames[ticker] = market_provider.fetch_daily(ticker, start, expected_end)
+    for frame in frames.values():
         _check_completed_session(frame, expected_end)
-        frames[ticker] = frame
     candidates, regime = rank_from_frames(
         frames, benchmark_ticker, int(strategy["thresholds"]["top_candidates"])
     )

@@ -166,3 +166,25 @@ def test_yfinance_provider_sets_a_finite_request_timeout(monkeypatch: pytest.Mon
 def test_yfinance_timeout_must_be_positive() -> None:
     with pytest.raises(ValueError, match="positive"):
         YFinancePriceProvider(timeout_seconds=0)
+
+
+def test_yfinance_batch_fetches_a_small_universe_in_one_bounded_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request: dict[str, object] = {}
+
+    def download(tickers: list[str], **kwargs: object) -> pd.DataFrame:
+        request.update({"tickers": tickers, **kwargs})
+        return pd.concat({ticker: _bars() for ticker in tickers}, axis=1)
+
+    monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(download=download))
+    result = YFinancePriceProvider(timeout_seconds=7.5).fetch_daily_many(
+        ["ABC", "DEF"],
+        datetime(2024, 1, 1, tzinfo=UTC),
+        datetime(2024, 1, 3, tzinfo=UTC),
+    )
+    assert sorted(result) == ["ABC", "DEF"]
+    assert request["tickers"] == ["ABC", "DEF"]
+    assert request["group_by"] == "ticker"
+    assert request["threads"] is True
+    assert request["timeout"] == 7.5

@@ -107,6 +107,46 @@ class YFinancePriceProvider:
         )
         return validate_ohlcv(raw, as_of=end)
 
+    def fetch_daily_many(
+        self, tickers: list[str], start: datetime, end: datetime
+    ) -> dict[str, pd.DataFrame]:
+        """Fetch a small local-research universe in one bounded Yahoo request.
+
+        This avoids a daily run waiting once per symbol if Yahoo is slow. It is intentionally
+        restricted to personal, local research; callers must not publish the resulting data or
+        derived output without the necessary data rights.
+        """
+        normalized_tickers = list(dict.fromkeys(ticker.strip().upper() for ticker in tickers))
+        if not normalized_tickers or any(not ticker for ticker in normalized_tickers):
+            raise ValueError("At least one non-empty ticker is required")
+        if len(normalized_tickers) == 1:
+            ticker = normalized_tickers[0]
+            return {ticker: self.fetch_daily(ticker, start, end)}
+        try:
+            import yfinance as yf
+        except ImportError as exc:  # pragma: no cover - dependency declaration covers normal use
+            raise RuntimeError("Install the yfinance optional market-data dependency") from exc
+        raw = yf.download(
+            normalized_tickers,
+            start=start.date().isoformat(),
+            end=(end.date() + timedelta(days=1)).isoformat(),
+            auto_adjust=True,
+            progress=False,
+            actions=False,
+            group_by="ticker",
+            threads=True,
+            timeout=self.timeout_seconds,
+        )
+        if not isinstance(raw.columns, pd.MultiIndex):
+            raise DataValidationError("Yahoo batch response must use ticker-grouped columns")
+        returned_tickers = set(raw.columns.get_level_values(0))
+        missing = [ticker for ticker in normalized_tickers if ticker not in returned_tickers]
+        if missing:
+            raise DataValidationError(f"Yahoo batch response is missing tickers: {missing}")
+        return {
+            ticker: validate_ohlcv(raw[ticker], as_of=end) for ticker in normalized_tickers
+        }
+
 
 class LocalCsvPriceProvider:
     """Validated daily OHLCV exports from a licensed point-in-time data vendor.

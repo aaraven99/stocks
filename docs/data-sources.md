@@ -6,7 +6,8 @@ licensed point-in-time vendor and historical constituent files before making bro
 claims. The yfinance project describes itself as an unaffiliated research/education library and
 directs users to Yahoo's terms for data rights; configure it only for personal local research,
 store its outputs in ignored paths, and do not publish downloaded data or derived performance
-claims from it without obtaining the necessary rights.
+claims from it without obtaining the necessary rights. The local daily pipeline requests its small
+starter universe in one bounded batch, not one unconstrained network call per ticker.
 
 `SecEdgarClient` uses the official `data.sec.gov` issuer-submissions endpoint and requires a
 descriptive `SEC_USER_AGENT`; it does **not** need an SEC API key. It rate-limits requests and
