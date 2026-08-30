@@ -57,8 +57,10 @@ stock-universe study. The adapter expects one `<ticker>.csv` per symbol with dat
 
 `swing-research daily` loads only completed market data, rejects stale critical data, derives
 features and a market regime, ranks a small funnel, applies risk gates, stores predictions, and
-writes a dated Markdown report. The GitHub workflow invokes it on both possible UTC schedule
-hours and the Python gate runs only at 05:00 America/Chicago on NYSE sessions.
+writes a dated Markdown report. Run it locally with a lawful provider. The public GitHub workflow
+uses both possible UTC schedule hours only to run the calendar safety gate; it intentionally does
+not fetch market data, write artifacts, or push results. The Python gate allows 05:00
+America/Chicago on NYSE sessions.
 
 Run `swing-research reconcile-outcomes` after predicted holding horizons complete. It enters at
 the next available open, applies the configured costs, records only fully observed outcomes, and

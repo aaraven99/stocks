@@ -1,4 +1,4 @@
-name: Daily research
+name: Daily research safety gate
 
 on:
   # GitHub Actions cron is UTC-only. 10:00 UTC is 5 AM CDT and 11:00 UTC is 5 AM CST.
@@ -8,14 +8,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: daily-research
   cancel-in-progress: false
 
 jobs:
-  research:
+  safety-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,12 +28,7 @@ jobs:
         shell: bash
         run: uv run swing-research workflow-gate >> "$GITHUB_OUTPUT"
       - if: steps.gate.outputs.run_daily == 'true'
-        run: uv run swing-research daily
-      - if: steps.gate.outputs.run_daily == 'true'
         shell: bash
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f data/paper_ledger.sqlite3 reports/daily
-          git diff --cached --quiet || git commit -m 'chore: record daily research artifact'
-          git push
+          echo "Live data collection is disabled in public GitHub Actions."
+          echo "Run daily research locally with an admissible provider; do not publish provider data or derived artifacts."

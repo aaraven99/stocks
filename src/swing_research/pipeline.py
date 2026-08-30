@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -10,7 +11,7 @@ import pandas as pd
 
 from .agents import synthesize_narratives
 from .config import load_config
-from .data import PriceProvider, configured_price_provider, validate_ohlcv
+from .data import PriceProvider, YFinancePriceProvider, configured_price_provider, validate_ohlcv
 from .features import build_technical_features
 from .market_calendar import latest_completed_nyse_session
 from .regime import MarketRegime, detect_regime
@@ -63,6 +64,13 @@ def run_daily_research(
     expected_end = datetime.combine(expected_date, datetime.min.time(), tzinfo=UTC)
     start = expected_end - timedelta(days=500)
     market_provider = provider or configured_price_provider()
+    if os.getenv("GITHUB_ACTIONS", "").lower() == "true" and isinstance(
+        market_provider, YFinancePriceProvider
+    ):
+        raise RuntimeError(
+            "YFinancePriceProvider is restricted to private local research and cannot run "
+            "inside public GitHub Actions."
+        )
     tickers = list(dict.fromkeys([benchmark_ticker, *universe["tickers"]]))
     frames: dict[str, pd.DataFrame] = {}
     for ticker in tickers:
