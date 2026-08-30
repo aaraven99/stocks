@@ -50,6 +50,16 @@ class RobustExperiment:
     final_holdout: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class PromotionGateResult:
+    """Evidence required before any benchmark-beating label is allowed."""
+
+    passed: bool
+    required_terminal_wealth_multiple: float
+    observed_weakest_multiples: dict[str, float]
+    failures: tuple[str, ...]
+
+
 def generate_specs(research: dict[str, Any]) -> list[RelativeStrengthSpec]:
     grid = research["parameter_grid"]
     return [
@@ -212,6 +222,9 @@ def run_robust_experiment(
 
 
 def robust_experiment_as_dict(experiment: RobustExperiment) -> dict[str, Any]:
+    promotion = evaluate_benchmark_promotion(
+        {"validation": experiment.validation, "final_holdout": experiment.final_holdout}
+    )
     return {
         "selected_across_development_periods": {
             "spec": asdict(experiment.selected.spec),
@@ -221,4 +234,45 @@ def robust_experiment_as_dict(experiment: RobustExperiment) -> dict[str, Any]:
         },
         "validation": experiment.validation,
         "final_holdout": experiment.final_holdout,
+        "promotion_gate": asdict(promotion),
     }
+
+
+def evaluate_benchmark_promotion(
+    periods: dict[str, dict[str, Any]], required_terminal_wealth_multiple: float = 1.5
+) -> PromotionGateResult:
+    """Require every independent OOS period to beat both SPY and QQQ by the stated multiple."""
+    if required_terminal_wealth_multiple < 1:
+        raise ValueError("Benchmark promotion multiple must be at least one")
+    observed: dict[str, float] = {}
+    failures: list[str] = []
+    if len(periods) < 2:
+        failures.append("At least two independent out-of-sample periods are required")
+    for name, result in periods.items():
+        benchmarks = result.get("benchmarks")
+        if not isinstance(benchmarks, dict):
+            failures.append(f"{name}: benchmark metrics are missing")
+            continue
+        multiples: list[float] = []
+        for ticker in ("SPY", "QQQ"):
+            metrics = benchmarks.get(ticker)
+            value = metrics.get("terminal_wealth_multiple") if isinstance(metrics, dict) else None
+            if not isinstance(value, int | float):
+                failures.append(f"{name}: {ticker} terminal-wealth comparison is missing")
+                continue
+            multiples.append(float(value))
+        if len(multiples) != 2:
+            continue
+        weakest = min(multiples)
+        observed[name] = weakest
+        if weakest < required_terminal_wealth_multiple:
+            failures.append(
+                f"{name}: weakest SPY/QQQ terminal-wealth multiple {weakest:.2f}x is below "
+                f"{required_terminal_wealth_multiple:.2f}x"
+            )
+    return PromotionGateResult(
+        passed=not failures,
+        required_terminal_wealth_multiple=required_terminal_wealth_multiple,
+        observed_weakest_multiples=observed,
+        failures=tuple(failures),
+    )

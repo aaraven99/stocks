@@ -11,6 +11,7 @@ from swing_research.portfolio_backtesting import (
     close_matrix,
     run_relative_strength_portfolio,
 )
+from swing_research.relative_strength_research import evaluate_benchmark_promotion
 
 
 def _frames(periods: int = 420) -> dict[str, pd.DataFrame]:
@@ -58,6 +59,28 @@ def test_portfolio_backtest_records_benchmark_comparison() -> None:
     assert result.daily_turnover.sum() > 0
     assert {"SPY", "QQQ"}.issubset(result.benchmark_metrics)
     assert "terminal_wealth_multiple" in result.benchmark_metrics["SPY"]
+
+
+def test_promotion_requires_both_benchmarks_in_two_independent_periods() -> None:
+    result = evaluate_benchmark_promotion(
+        {
+            "validation": {
+                "benchmarks": {
+                    "SPY": {"terminal_wealth_multiple": 1.7},
+                    "QQQ": {"terminal_wealth_multiple": 1.6},
+                }
+            },
+            "final_holdout": {
+                "benchmarks": {
+                    "SPY": {"terminal_wealth_multiple": 1.8},
+                    "QQQ": {"terminal_wealth_multiple": 1.4},
+                }
+            },
+        }
+    )
+    assert not result.passed
+    assert result.observed_weakest_multiples == {"validation": 1.6, "final_holdout": 1.4}
+    assert "final_holdout" in result.failures[0]
 
 
 def test_defensive_sleeve_uses_strongest_positive_defensive_asset() -> None:

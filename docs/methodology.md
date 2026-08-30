@@ -11,6 +11,11 @@ For benchmark-beating research, terminal wealth relative to both SPY and QQQ is 
 risk metrics. A one-period win is insufficient: the research ledger defines the separate
 multi-period promotion gate in `reports/backtests/relative-strength-research.md`.
 
+The code enforces the minimum promotion gate: the exact selected specification must have a weakest
+SPY/QQQ terminal-wealth multiple of at least 1.5x in **both** independent out-of-sample periods.
+Any missing benchmark, one-period success, or lower multiple is a failed promotion—not an
+invitation to tune parameters against the failed period.
+
 The stock cross-sectional engine consumes a membership matrix whose row for a signal date contains
 only the securities known to be constituents at that completed close. It ranks those members, then
 executes at the following regular-session open. Missing prices for a held security are fatal; the

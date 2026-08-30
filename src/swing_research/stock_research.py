@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from .backtesting import CostModel
-from .relative_strength_research import ResearchPeriod
+from .relative_strength_research import ResearchPeriod, evaluate_benchmark_promotion
 from .stock_backtesting import (
     CrossSectionalMomentumSpec,
     run_point_in_time_cross_sectional_momentum,
@@ -148,6 +148,9 @@ def run_robust_stock_experiment(
 
 
 def stock_experiment_as_dict(experiment: StockRobustExperiment) -> dict[str, Any]:
+    promotion = evaluate_benchmark_promotion(
+        {"validation": experiment.validation, "final_holdout": experiment.final_holdout}
+    )
     return {
         "selected_across_development_periods": {
             "spec": asdict(experiment.selected.spec),
@@ -158,4 +161,5 @@ def stock_experiment_as_dict(experiment: StockRobustExperiment) -> dict[str, Any
         "validation": experiment.validation,
         "final_holdout": experiment.final_holdout,
         "cost_stress": experiment.cost_stress,
+        "promotion_gate": asdict(promotion),
     }
