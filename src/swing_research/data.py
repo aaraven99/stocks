@@ -83,7 +83,12 @@ def assert_fresh(last_bar: pd.Timestamp, now: datetime, max_age: timedelta) -> N
 
 
 class YFinancePriceProvider:
-    """Optional convenience adapter; not a survivorship-bias-free data source."""
+    """Optional personal-research adapter; not a survivorship-bias-free data source."""
+
+    def __init__(self, timeout_seconds: float = 15.0) -> None:
+        if timeout_seconds <= 0:
+            raise ValueError("YFinance timeout_seconds must be positive")
+        self.timeout_seconds = timeout_seconds
 
     def fetch_daily(self, ticker: str, start: datetime, end: datetime) -> pd.DataFrame:
         try:
@@ -98,6 +103,7 @@ class YFinancePriceProvider:
             progress=False,
             actions=False,
             threads=False,
+            timeout=self.timeout_seconds,
         )
         return validate_ohlcv(raw, as_of=end)
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -10,6 +12,7 @@ from swing_research.data import (
     DataValidationError,
     FinnhubNewsClient,
     LocalCsvPriceProvider,
+    YFinancePriceProvider,
     configured_price_provider,
     validate_ohlcv,
 )
@@ -143,3 +146,23 @@ def test_finnhub_is_not_assumed_to_be_a_licensed_price_provider(
     monkeypatch.setenv("MARKET_DATA_PROVIDER", "finnhub")
     with pytest.raises(ValueError, match="not enabled"):
         configured_price_provider()
+
+
+def test_yfinance_provider_sets_a_finite_request_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    request: dict[str, object] = {}
+
+    def download(ticker: str, **kwargs: object) -> pd.DataFrame:
+        request.update({"ticker": ticker, **kwargs})
+        return _bars()
+
+    monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(download=download))
+    result = YFinancePriceProvider(timeout_seconds=7.5).fetch_daily(
+        "ABC", datetime(2024, 1, 1, tzinfo=UTC), datetime(2024, 1, 3, tzinfo=UTC)
+    )
+    assert request["timeout"] == 7.5
+    assert not result.empty
+
+
+def test_yfinance_timeout_must_be_positive() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        YFinancePriceProvider(timeout_seconds=0)
